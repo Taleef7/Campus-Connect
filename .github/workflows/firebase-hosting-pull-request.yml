@@ -27,7 +27,7 @@ jobs:
       - name: Install and Build
         run: |
           cd frontend
-          npm ci --no-optional
+          npm ci
           npm run build
 
       # Step 4: Deploy to Firebase Hosting
