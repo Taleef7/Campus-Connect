@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Button, Card, CardContent, Typography, Chip, TextField, MenuItem, Select, InputLabel, FormControl, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
+import {
+  Box, Button, Card, CardContent, Typography, Chip, TextField,
+  MenuItem, Select, InputLabel, FormControl, Dialog, DialogActions,
+  DialogContent, DialogTitle
+} from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
-import { collection, getDocs, addDoc, deleteDoc, query, where, doc } from 'firebase/firestore';
+import {
+  collection, getDocs, addDoc, deleteDoc, updateDoc, query, where, doc
+} from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
 const ProfessorCourses = () => {
@@ -14,13 +20,14 @@ const ProfessorCourses = () => {
     courseName: '',
     description: '',
     status: 'Ongoing',
-    link: '',  // Link for the course
+    link: '',
   });
   const [user, setUser] = useState(null);
-  const [isFormVisible, setFormVisible] = useState(false); // For Dialog visibility
+  const [isFormVisible, setFormVisible] = useState(false);
+  const [editingCourseId, setEditingCourseId] = useState(null); // ✅ NEW
+
   const navigate = useNavigate();
 
-  // Listen to auth changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
@@ -33,7 +40,6 @@ const ProfessorCourses = () => {
     return () => unsubscribe();
   }, []);
 
-  // Fetch courses belonging to the logged-in professor
   useEffect(() => {
     if (user) {
       const fetchCourses = async () => {
@@ -55,20 +61,28 @@ const ProfessorCourses = () => {
     }
   }, [user]);
 
-  // Handle removing a course
   const handleRemoveCourse = async (id) => {
     try {
-      // Delete the course from Firestore
       await deleteDoc(doc(db, 'courses', id));
-      
-      // Update the UI by removing the course from state
       setCourses(courses.filter((course) => course.id !== id));
     } catch (err) {
       console.error('Error deleting course:', err);
     }
   };
 
-  // Add new course to Firestore
+  // ✅ EDIT FUNCTION
+  const handleEditCourse = (course) => {
+    setNewCourse({
+      courseName: course.courseName,
+      description: course.description,
+      status: course.status,
+      link: course.link,
+    });
+    setEditingCourseId(course.id);
+    setFormVisible(true);
+  };
+
+  // ✅ UPDATED: Add or Update
   const handleAddCourse = async () => {
     if (!newCourse.courseName || !newCourse.description || !newCourse.link) {
       alert('Please fill in all fields correctly.');
@@ -76,19 +90,28 @@ const ProfessorCourses = () => {
     }
 
     try {
-      const courseId = generateCourseId(newCourse.courseName);  // Generate the courseId dynamically
+      if (editingCourseId) {
+        await updateDoc(doc(db, 'courses', editingCourseId), {
+          ...newCourse,
+          professorId: user.uid,
+        });
+      } else {
+        const courseId = generateCourseId(newCourse.courseName);
+        await addDoc(collection(db, 'courses'), {
+          courseName: newCourse.courseName,
+          description: newCourse.description,
+          status: newCourse.status,
+          courseId: courseId,
+          link: newCourse.link,
+          professorId: user.uid,
+        });
+      }
 
-      await addDoc(collection(db, 'courses'), {
-        courseName: newCourse.courseName,
-        description: newCourse.description,
-        status: newCourse.status,
-        courseId: courseId,  // Automatically generated courseId
-        link: newCourse.link,
-        professorId: user.uid,
-      });
-
-      // Clear form and reload the course list
+      // Reset
       setNewCourse({ courseName: '', description: '', status: 'Ongoing', link: '' });
+      setEditingCourseId(null);
+      setFormVisible(false);
+
       const q = query(collection(db, 'courses'), where('professorId', '==', user.uid));
       const querySnapshot = await getDocs(q);
       const fetchedCourses = querySnapshot.docs.map((doc) => ({
@@ -96,20 +119,17 @@ const ProfessorCourses = () => {
         ...doc.data(),
       }));
       setCourses(fetchedCourses);
-      setFormVisible(false); // Close the dialog after adding course
     } catch (err) {
-      console.error('Error adding course:', err);
+      console.error('Error saving course:', err);
     }
   };
 
-  // Generate courseId based on course name and random numbers
   const generateCourseId = (courseName) => {
-    const deptPrefix = courseName.slice(0, 2).toUpperCase();  // Get first two letters
-    const randomNumber = Math.floor(1000 + Math.random() * 9000); // Generate 4 random digits
+    const deptPrefix = courseName.slice(0, 2).toUpperCase();
+    const randomNumber = Math.floor(1000 + Math.random() * 9000);
     return deptPrefix + randomNumber;
   };
 
-  // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewCourse((prev) => ({
@@ -118,7 +138,6 @@ const ProfessorCourses = () => {
     }));
   };
 
-  // Display loading or error message
   if (loading) {
     return <div>Loading courses...</div>;
   }
@@ -139,8 +158,6 @@ const ProfessorCourses = () => {
               />
               <Typography variant="h6">{course.courseName}</Typography>
               <Typography variant="body2">{course.description}</Typography>
-
-              {/* Display the link as a clickable hyperlink */}
               {course.link && (
                 <Typography variant="body2" color="primary">
                   <a href={course.link} target="_blank" rel="noopener noreferrer">
@@ -157,14 +174,26 @@ const ProfessorCourses = () => {
               >
                 Delete
               </Button>
+
+              {/* ✅ Edit Button */}
+              <Button
+                onClick={() => handleEditCourse(course)}
+                color="primary"
+                style={{ marginTop: '10px', marginLeft: '10px' }}
+              >
+                Edit
+              </Button>
             </CardContent>
           </Card>
         ))}
 
-        {/* Add Course Button in the bottom-right of the box */}
         <Button
           variant="contained"
-          onClick={() => setFormVisible(true)}
+          onClick={() => {
+            setNewCourse({ courseName: '', description: '', status: 'Ongoing', link: '' });
+            setEditingCourseId(null); // ✅ Clear edit mode on Add
+            setFormVisible(true);
+          }}
           style={{
             position: 'absolute',
             bottom: '40px',
@@ -182,9 +211,8 @@ const ProfessorCourses = () => {
         </Button>
       </Box>
 
-      {/* Dialog for Adding Course */}
       <Dialog open={isFormVisible} onClose={() => setFormVisible(false)}>
-        <DialogTitle>Add New Course</DialogTitle>
+        <DialogTitle>{editingCourseId ? 'Edit Course' : 'Add New Course'}</DialogTitle>
         <DialogContent>
           <TextField
             label="Course Name"
@@ -210,7 +238,6 @@ const ProfessorCourses = () => {
             value={newCourse.link}
             onChange={handleInputChange}
           />
-
           <FormControl fullWidth margin="normal">
             <InputLabel>Status</InputLabel>
             <Select
@@ -229,7 +256,7 @@ const ProfessorCourses = () => {
             Cancel
           </Button>
           <Button onClick={handleAddCourse} color="primary">
-            Add Course
+            {editingCourseId ? 'Update Course' : 'Add Course'}
           </Button>
         </DialogActions>
       </Dialog>
