@@ -1,40 +1,46 @@
-name: Deploy to Firebase Hosting on Merge
+# .github/workflows/firebase-hosting-pull-request.yml
+name: Deploy PR Preview to Firebase Hosting # Renamed
+
 on:
-  push:
-    branches: [ "main" ]
+  pull_request: # Correct trigger for PRs
+    types: [opened, synchronize] # Trigger on open and subsequent pushes to the PR branch
+    branches: [ "main" ] # Only trigger for PRs targeting the main branch
 
 jobs:
-  build_and_deploy:
+  build_and_deploy_preview: # Job name slightly more specific
+    name: Build and Deploy Preview # Job display name
+    if: '${{ github.event.pull_request.head.repo.full_name == github.repository }}' # Optional: Ensure PR is from the same repo, not a fork
     runs-on: ubuntu-latest
     steps:
-      # Step 1: Check out your repository
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      # Step 2: Write your environment variables to frontend/.env
-      - name: Create .env from GitHub Secrets
-        run: |
-          echo "VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY }}" >> frontend/.env
-          echo "VITE_FIREBASE_AUTH_DOMAIN=${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}" >> frontend/.env
-          echo "VITE_FIREBASE_DATABASE_URL=${{ secrets.VITE_FIREBASE_DATABASE_URL }}" >> frontend/.env
-          echo "VITE_FIREBASE_PROJECT_ID=${{ secrets.VITE_FIREBASE_PROJECT_ID }}" >> frontend/.env
-          echo "VITE_FIREBASE_STORAGE_BUCKET=${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}" >> frontend/.env
-          echo "VITE_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}" >> frontend/.env
-          echo "VITE_FIREBASE_APP_ID=${{ secrets.VITE_FIREBASE_APP_ID }}" >> frontend/.env
-          echo "VITE_FIREBASE_MEASUREMENT_ID=${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}" >> frontend/.env
-          echo "VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}" >> frontend/.env
+      - name: Setup Node.js v20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Use Node 20
 
-      # Step 3: Install dependencies and build
-      - name: Install and Build
-        run: |
-          cd frontend
-          npm install
-          npm run build
+      - name: Install Frontend Dependencies
+        run: npm install
+        working-directory: ./frontend
 
-      # Step 4: Deploy to Firebase Hosting
-      - name: Deploy to Firebase
+      - name: Build Frontend for Preview
+        run: npm run build
+        working-directory: ./frontend
+        env: # Inject secrets using env block
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_FIREBASE_MEASUREMENT_ID: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+
+      - name: Deploy to Firebase Hosting (Preview)
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CAMPUS_CONNECT_B87D4 }}
           projectId: campus-connect-b87d4
-          channelId: live
+          # channelId: live # REMOVED - Let the action create a default preview channel

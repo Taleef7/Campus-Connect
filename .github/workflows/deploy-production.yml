@@ -1,32 +1,31 @@
-name: Deploy to Firebase Hosting on Merge
+# .github/workflows/deploy-production.yml
+name: Deploy Production to Firebase Hosting # Renamed
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main" ] # Correct trigger
 
 jobs:
-  build_and_deploy:
+  build_and_deploy_production: # Job name slightly more specific
+    name: Build and Deploy Production # Job display name
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Setup Node - Good practice to specify a version
-      - name: Setup Node.js
-        uses: actions/setup-node@v4 # Use a specific version like setup-node@v4
+      - name: Setup Node.js v20
+        uses: actions/setup-node@v4
         with:
-          node-version: '18' # Or your project's required Node version
+          node-version: '20' # Use Node 20 (compatible with latest firebase-tools)
 
-      # Install frontend dependencies
       - name: Install Frontend Dependencies
         run: npm install
-        working-directory: ./frontend # Specify working directory
+        working-directory: ./frontend
 
-      # Build frontend WITH environment variables
       - name: Build Frontend
         run: npm run build
-        working-directory: ./frontend # Specify working directory
-        env: # <-- Add this env block to inject secrets into the build process
+        working-directory: ./frontend
+        env: # Inject secrets using env block
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
           VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
           VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
@@ -35,13 +34,11 @@ jobs:
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
           VITE_FIREBASE_MEASUREMENT_ID: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
-          # Add any other VITE_ variables your app needs from secrets
 
-      # Deploy to Firebase Hosting
-      - name: Deploy to Firebase Hosting Live Channel
+      - name: Deploy to Firebase Hosting (Live)
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CAMPUS_CONNECT_B87D4 }} # Ensure this secret name is correct
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CAMPUS_CONNECT_B87D4 }}
           projectId: campus-connect-b87d4
-          channelId: live
+          channelId: live # Correct target channel for production
