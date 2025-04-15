@@ -6,10 +6,15 @@ on:
     types: [opened, synchronize] # Trigger on open and subsequent pushes to the PR branch
     branches: [ "main" ] # Only trigger for PRs targeting the main branch
 
+permissions:
+  checks: write # Needed to report status back to PR checks
+  contents: read # Needed to checkout the code
+  pull-requests: write # Needed to add comment with preview URL
+
 jobs:
   build_and_deploy_preview: # Job name slightly more specific
     name: Build and Deploy Preview # Job display name
-    if: '${{ github.event.pull_request.head.repo.full_name == github.repository }}' # Optional: Ensure PR is from the same repo, not a fork
+    if: '${{ github.event.pull_request.head.repo.full_name == github.repository }}'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
