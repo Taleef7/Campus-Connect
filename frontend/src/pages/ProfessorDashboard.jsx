@@ -81,18 +81,46 @@ const ProfessorDashboard = () => {
     setUiLoading(true);
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (!currentUser) { navigate('/professor-login'); setUiLoading(false); return; }
+      // --- CHECK if email is verified FIRST ---
+      if (!currentUser.emailVerified) {
+        console.warn(`User ${currentUser.uid} email not verified. Redirecting.`);
+        // Optional: Show message
+        // await signOut(auth);
+        navigate('/professor-login'); // Redirect to login
+        setUiLoading(false);
+        return;
+    }
+     // --- End Email Verification Check ---
       setUser(currentUser);
       try {
           const docRef = doc(db, 'users', currentUser.uid);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
-              setProfessorData(docSnap.data());
+              const data = docSnap.data();
+              // --- ROLE CHECK ---
+              if (data.role !== 'professor') {
+                console.warn(`User ${currentUser.uid} attempted to access professor dashboard but has role: ${data.role}`);
+                await signOut(auth); // Log out the user
+                navigate('/professor-login'); // Redirect to professor login
+                setUiLoading(false);
+                return; // Stop further processing
+              }
+              // --- End ROLE CHECK ---
+              setProfessorData(data); // Set data only if role is correct
           } else {
-              console.warn("No Firestore document found for user:", currentUser.uid);
-              setProfessorData({});
+              console.error("Firestore document missing for authenticated user:", currentUser.uid);
+              await signOut(auth);
+              navigate('/professor-login');
+              setUiLoading(false);
+              return;
           }
-      } catch (error) { console.error("Error fetching professor data:", error); }
-      finally { setUiLoading(false); }
+      } catch (error) {
+          console.error("Error fetching professor data:", error);
+          await signOut(auth);
+          navigate('/professor-login');
+      } finally {
+          setUiLoading(false);
+      }
     });
     return () => unsubscribe();
   }, [navigate]);
@@ -256,6 +284,11 @@ const ProfessorDashboard = () => {
   // --- Render Logic ---
   if (uiLoading) {
     return ( <DashboardLayout> <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}> <CircularProgress /> </Box> </DashboardLayout> );
+  }
+
+  // Only proceed to render dashboard content if professorData is loaded and role check passed
+  if (!professorData) {
+    return ( <DashboardLayout handleSignOut={handleSignOut}><Typography>Error loading data or unauthorized.</Typography></DashboardLayout>);
   }
 
   const photoLink = professorData?.photoLink || '';
