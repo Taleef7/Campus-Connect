@@ -5,23 +5,50 @@ import ProfessorDashboard from './pages/ProfessorDashboard';
 import StudentAuth from './pages/StudentAuth';
 import StudentDashboard from './pages/StudentDashboard';
 import ProfessorCourses from './pages/ProfessorCourses';
+import DirectoryPage from './pages/DirectoryPage'; // <-- Import the new page
+import UserProfilePage from './pages/UserProfilePage'; // <-- Import the new page
+import ProtectedRoute from './components/auth/ProtectedRoute';
+
 
 const App = () => {
   return (
     <Routes>
-      {/* Landing Page */}
+      {/* Public Routes */}
       <Route path="/" element={<LandingPage />} />
-
-      {/* Professor Routes */}
       <Route path="/professor-login" element={<ProfessorAuth />} />
       <Route path="/professor-signup" element={<ProfessorAuth />} />
-      <Route path="/professor-dashboard" element={<ProfessorDashboard />} />
-      <Route path="/professor-courses" element={<ProfessorCourses />} />
-
-      {/* Student Routes */}
       <Route path="/student-login" element={<StudentAuth />} />
       <Route path="/student-signup" element={<StudentAuth />} />
-      <Route path="/student-dashboard" element={<StudentDashboard />} />
+
+      {/* Protected Routes */}
+      <Route path="/directory" element={
+        <ProtectedRoute>
+          <DirectoryPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/profile/:userId" element={ // Also protect profile view
+        <ProtectedRoute>
+          <UserProfilePage />
+        </ProtectedRoute>
+      } />
+       <Route path="/professor-dashboard" element={
+         <ProtectedRoute>
+            <ProfessorDashboard />
+         </ProtectedRoute>
+        } />
+       <Route path="/professor-courses" element={ // Consider if this needs protection
+         <ProtectedRoute>
+            <ProfessorCourses />
+         </ProtectedRoute>
+        } />
+        <Route path="/student-dashboard" element={
+          <ProtectedRoute>
+            <StudentDashboard />
+          </ProtectedRoute>
+        } />
+
+      {/* Add other routes as needed */}
+
     </Routes>
   );
 };
