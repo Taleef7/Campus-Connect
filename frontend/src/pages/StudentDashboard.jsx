@@ -246,7 +246,7 @@ const StudentDashboard = () => {
   const resumeLink = studentData?.resumeLink || '';
 
   return (
-    <DashboardLayout handleSignOut={handleSignOut}>
+    <DashboardLayout handleSignOut={handleSignOut} dashboardPath='/student-dashboard'>
       <Box sx={{ mb: 3, textAlign: 'center' }}>
         <Typography variant="h4" gutterBottom> Student Dashboard </Typography>
         {studentData && ( <Typography variant="h6" color="text.secondary"> Welcome, {studentData.name || 'Student'}! </Typography> )}

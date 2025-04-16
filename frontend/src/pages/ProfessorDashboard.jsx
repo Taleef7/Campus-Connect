@@ -296,7 +296,7 @@ const ProfessorDashboard = () => {
   // resumeLink is no longer needed here, it's passed directly below
 
   return (
-    <DashboardLayout handleSignOut={handleSignOut}>
+    <DashboardLayout handleSignOut={handleSignOut} dashboardPath='/professor-dashboard'>
       <Box sx={{ mb: 3, textAlign: 'center' }}>
          <Typography variant="h4" gutterBottom> Professor Dashboard </Typography>
          {professorData && ( <Typography variant="h6" color="text.secondary"> Welcome, {professorData.name || 'Professor'}! </Typography> )}
