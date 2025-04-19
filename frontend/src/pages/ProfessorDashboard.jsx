@@ -9,7 +9,7 @@ import {
 } from '@mui/material';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, addDoc, Timestamp, query, where, orderBy, onSnapshot, deleteDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { app } from '../firebase';
 
@@ -20,12 +20,17 @@ import DashboardLayout from '../components/dashboard/DashboardLayout';
 import ProfileHeader from '../components/profile/ProfileHeader';
 // Removed EditableField, EditableTextArea, FileUploadField imports as they are now in ProfileInfoSection
 import ProfileInfoSection from '../components/profile/ProfileInfoSection'; // <-- Import ProfileInfoSection
+import AddOpportunityForm from '../components/opportunities/AddOpportunityForm'; // Assuming this is the correct path for AddOpportunityForm
+import OpportunityListItem from '../components/opportunities/OpportunityListItem'; // Assuming this is the correct path for OpportunityListItem
+import InterestedStudentsDialog from '../components/opportunities/InterestedStudentsDialog'; // Assuming this is the correct path for InterestedStudentsDialog
 
 // Icons
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
+import AddIcon from '@mui/icons-material/Add';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 // TabPanel helper component
 function TabPanel(props) {
@@ -61,6 +66,7 @@ const ProfessorDashboard = () => {
   const [professorData, setProfessorData] = useState(null);
   const [uiLoading, setUiLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false); // Generic for actions like delete/post
   const [tabValue, setTabValue] = useState(0);
 
   // Modals & Photo/Cover Files State
@@ -71,6 +77,19 @@ const ProfessorDashboard = () => {
   const [coverFile, setCoverFile] = useState(null);
   const [viewCoverMode, setViewCoverMode] = useState(false);
   // No specific state needed here for fields anymore
+
+  // --- State for Add Opportunity Dialog ---
+  const [isAddOppDialogOpen, setAddOppDialogOpen] = useState(false);
+  const [opportunities, setOpportunities] = useState([]); // State for fetched opportunities
+  const [loadingOpportunities, setLoadingOpportunities] = useState(true); // Loading state for opportunities list
+  const [editingOpportunity, setEditingOpportunity] = useState(null); // State to hold opportunity being edited
+  // --- End State --
+
+  // --- State for Interested Students Dialog ---
+  const [isInterestedDialogOpen, setIsInterestedDialogOpen] = useState(false);
+  const [selectedOpportunityId, setSelectedOpportunityId] = useState(null);
+  const [selectedOpportunityTitle, setSelectedOpportunityTitle] = useState('');
+  // --- End State ---
 
   // --- Hooks ---
   const navigate = useNavigate();
@@ -124,6 +143,54 @@ const ProfessorDashboard = () => {
     });
     return () => unsubscribe();
   }, [navigate]);
+
+
+  // --- Effect to Fetch Professor's Opportunities (Real-time) ---
+  useEffect(() => {
+    if (!user) {
+        console.log("Opportunity Fetch Effect: No user, skipping fetch.");
+        // Ensure loading is false if user logs out while viewing
+        setLoadingOpportunities(false);
+        setOpportunities([]); // Clear opportunities if user logs out
+        return;
+    };
+
+    console.log(`Opportunity Fetch Effect: Setting up listener for user ${user.uid}`);
+    setLoadingOpportunities(true);
+    const opportunitiesCollectionRef = collection(db, 'opportunities');
+    const q = query(
+        opportunitiesCollectionRef,
+        where('professorId', '==', user.uid),
+        orderBy('createdAt', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        // --- Log inside snapshot callback ---
+        console.log(`onSnapshot triggered: Found ${querySnapshot.size} opportunities.`);
+        const fetchedOpportunities = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+        }));
+        console.log("Fetched data:", fetchedOpportunities);
+        setOpportunities(fetchedOpportunities); // Update state
+        console.log("setOpportunities called.");
+        setLoadingOpportunities(false); // Set loading false *after* state update
+        console.log("setLoadingOpportunities(false) called.");
+        // --- End logging inside callback ---
+    }, (error) => {
+        console.error("Error fetching opportunities via onSnapshot:", error);
+        setLoadingOpportunities(false); // Also set loading false on error
+    });
+
+    // Cleanup listener
+    return () => {
+        console.log("Opportunity Fetch Effect: Cleaning up listener.");
+        unsubscribe();
+    };
+
+  }, [user]); // Dependency: only user needed
+  // --- End Opportunity Fetch Effect ---
+
 
   // --- Event Handlers ---
   const handleSignOut = async () => {
@@ -281,6 +348,91 @@ const ProfessorDashboard = () => {
      finally { setIsSaving(false); }
   };
 
+  // --- Opportunity Handlers ---
+  const handleOpenAddOpportunityDialog = () => {
+    setEditingOpportunity(null); // Ensure we are adding new, not editing
+    setAddOppDialogOpen(true);
+  };
+  const handleOpenEditOpportunityDialog = (opportunity) => {
+      setEditingOpportunity(opportunity); // Set the opportunity to edit
+      setAddOppDialogOpen(true); // Open the same dialog
+  };
+  const handleCloseOpportunityDialog = () => {
+    setAddOppDialogOpen(false);
+    setEditingOpportunity(null); // Clear editing state on close
+  };
+
+  const handleSaveOpportunity = async (formData) => { // Handles both Add and Update
+      if (!user || !professorData) return;
+      setIsProcessing(true); // Use generic processing state
+      try {
+          const docData = {
+              ...formData, // Contains validated title, desc, type, etc.
+              professorId: user.uid,
+              professorName: professorData.name || 'Unknown',
+              department: professorData.department || '',
+              // createdAt is only set on Add, updated timestamp can be added if needed
+          };
+
+          if (editingOpportunity) {
+              // Update existing document
+              const docRef = doc(db, 'opportunities', editingOpportunity.id);
+              // Add/update an 'updatedAt' field if desired
+              // docData.updatedAt = Timestamp.now();
+              await updateDoc(docRef, docData);
+              console.log("Opportunity updated successfully!");
+          } else {
+              // Add new document
+              docData.createdAt = Timestamp.now(); // Set creation time for new docs
+              const opportunitiesCollectionRef = collection(db, 'opportunities');
+              await addDoc(opportunitiesCollectionRef, docData);
+              console.log("Opportunity added successfully!");
+          }
+
+          handleCloseOpportunityDialog(); // Close dialog on success
+          // No need to manually refresh list due to onSnapshot listener
+
+      } catch (error) {
+          console.error("Error saving opportunity:", error);
+          alert(`Failed to save opportunity: ${error.message}`);
+      } finally {
+          setIsProcessing(false);
+      }
+  };
+
+  const handleDeleteOpportunity = async (opportunityId) => {
+      if (!opportunityId) return;
+      if (!window.confirm('Are you sure you want to delete this opportunity post?')) return;
+      setIsProcessing(true);
+      try {
+          const docRef = doc(db, 'opportunities', opportunityId);
+          await deleteDoc(docRef);
+          console.log("Opportunity deleted successfully!");
+          // List updates automatically via onSnapshot
+      } catch (error) {
+          console.error("Error deleting opportunity:", error);
+          alert(`Failed to delete opportunity: ${error.message}`);
+      } finally {
+          setIsProcessing(false);
+      }
+  };
+
+  // --- Updated View Interested Handler ---
+  const handleViewInterested = (opportunityId) => {
+      // Find the opportunity title to pass to the dialog
+      const selectedOpp = opportunities.find(opp => opp.id === opportunityId);
+      setSelectedOpportunityTitle(selectedOpp?.title || ''); // Set title
+      setSelectedOpportunityId(opportunityId); // Set the ID
+      setIsInterestedDialogOpen(true); // Open the dialog
+      console.log("Opening interested students dialog for:", opportunityId);
+  };
+  const handleCloseInterestedDialog = () => {
+      setIsInterestedDialogOpen(false);
+      setSelectedOpportunityId(null);
+      setSelectedOpportunityTitle('');
+  };
+  // --- End Opportunity Handlers ---
+
   // --- Render Logic ---
   if (uiLoading) {
     return ( <DashboardLayout> <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}> <CircularProgress /> </Box> </DashboardLayout> );
@@ -294,6 +446,9 @@ const ProfessorDashboard = () => {
   const photoLink = professorData?.photoLink || '';
   const coverLink = professorData?.coverLink || '';
   // resumeLink is no longer needed here, it's passed directly below
+
+  // --- Log state right before render ---
+  console.log("ProfessorDashboard Rendering:", { loadingOpportunities, opportunitiesCount: opportunities.length });
 
   return (
     <DashboardLayout handleSignOut={handleSignOut} dashboardPath='/professor-dashboard'>
@@ -309,7 +464,7 @@ const ProfessorDashboard = () => {
           <Tab label="Profile" {...a11yProps(0)} />
           <Tab label="Research & Interests" {...a11yProps(1)} />
           <Tab label="Courses Offered" {...a11yProps(2)} />
-          <Tab label="Discussion" {...a11yProps(3)} />
+          <Tab label="Opportunities" {...a11yProps(3)} /> {/* Renamed "Discussion" Tab */}
         </Tabs>
 
         <TabPanel value={tabValue} index={0}>
@@ -338,11 +493,54 @@ const ProfessorDashboard = () => {
         {/* Other Tabs */}
         <TabPanel value={tabValue} index={1}> <ProfessorResearch /> </TabPanel>
         <TabPanel value={tabValue} index={2}> <ProfessorCourses /> </TabPanel>
+        {/* Opportunities Tab Panel */}
         <TabPanel value={tabValue} index={3}>
-            <Typography variant="h6" gutterBottom>Discussion</Typography>
-            <Typography variant="body2" color="text.secondary">This section is under development...</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                 <Typography variant="h6" gutterBottom>My Posted Opportunities</Typography>
+                 <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAddOpportunityDialog} disabled={isSaving || isProcessing} > Post New Opportunity </Button>
+            </Box>
+
+            {/* Opportunity List Display */}
+            {loadingOpportunities ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}> <CircularProgress /> </Box>
+            ) : opportunities.length > 0 ? (
+                opportunities.map((opp) => (
+                    <OpportunityListItem
+                        key={opp.id}
+                        opportunity={opp}
+                        onEdit={handleOpenEditOpportunityDialog} // Pass edit handler
+                        onDelete={handleDeleteOpportunity} // Pass delete handler
+                        onViewInterested={handleViewInterested} // Pass view interested handler
+                        viewMode="professor" // <-- ADD THIS PROP
+                    />
+                ))
+            ) : (
+                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', p: 3 }}>
+                    You haven&apos;t posted any opportunities yet.
+                </Typography>
+            )}
         </TabPanel>
       </Paper>
+
+      {/* --- Add Opportunity Form Dialog --- */}
+      {/* Render the Add Opportunity Form Dialog */}
+      {/* Add/Edit Opportunity Form Dialog */}
+      <AddOpportunityForm
+        open={isAddOppDialogOpen}
+        onClose={handleCloseOpportunityDialog}
+        onSave={handleSaveOpportunity}
+        isSaving={isProcessing} // Use the generic processing state
+        initialData={editingOpportunity} // Pass data when editing, null when adding
+      />
+
+      {/* --- Render Interested Students Dialog --- */}
+      <InterestedStudentsDialog
+          open={isInterestedDialogOpen}
+          onClose={handleCloseInterestedDialog}
+          opportunityId={selectedOpportunityId}
+          opportunityTitle={selectedOpportunityTitle}
+          professorId={user?.uid} // <-- Pass the logged-in professor's ID
+      />
 
        {/* --- Modals --- */}
       <Dialog open={viewCoverMode} onClose={() => !isSaving && setViewCoverMode(false)} maxWidth="md" fullWidth>

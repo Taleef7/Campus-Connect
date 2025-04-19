@@ -19,6 +19,7 @@ import ProfileHeader from '../components/profile/ProfileHeader'; // Reuse Profil
 import EditableField from '../components/common/EditableField'; // Reuse EditableField
 import EditableTextArea from '../components/common/EditableTextArea'; // Reuse EditableTextArea
 import FileUploadField from '../components/common/FileUploadField'; // Reuse FileUploadField
+import OpportunityFeed from '../components/opportunities/OpportunityFeed'; // Make sure this import exists and path is correct
 
 // Icons (Optional, but needed if reusing ProfileHeader with edit icons etc.)
 import EditIcon from '@mui/icons-material/Edit';
@@ -259,7 +260,7 @@ const StudentDashboard = () => {
           <Tab label="Profile" {...a11yProps(0)} />
           <Tab label="Research & Interests" {...a11yProps(1)} />
           <Tab label="Courses Enrolled" {...a11yProps(2)} />
-          <Tab label="Posts Interested In" {...a11yProps(3)} />
+          <Tab label="Opportunities Interested In" {...a11yProps(3)} />
         </Tabs>
 
         {/* --- Profile Tab (US3.1 & US3.2) --- */}
@@ -347,9 +348,10 @@ const StudentDashboard = () => {
            {/* Future: List of courses */}
         </TabPanel>
         <TabPanel value={tabValue} index={3}>
-            <Typography variant="h6">Posts Interested In</Typography>
+            <Typography variant="h6">Opportunites</Typography>
             <Typography variant="body2" color="textSecondary">(Content for US3.5 will go here)</Typography>
-           {/* Future: List of bookmarked/applied posts */}
+           {/* Future: List of bookmarked/applied opportunties */}
+           <OpportunityFeed />
         </TabPanel>
       </Paper>
 
