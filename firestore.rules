@@ -5,41 +5,74 @@ service cloud.firestore {
 
     // Rules for users collection
     match /users/{userId} {
-      // Allow users read/write access ONLY to their own document
       allow read, update, delete: if request.auth != null && request.auth.uid == userId;
-      // Allow any authenticated user to create a user document (needed for signup)
       allow create: if request.auth != null;
-       // Allow any authenticated user to GET (read single doc) any user's profile
-      // (You might want this for profile view pages later, adjust if needed)
+      // Allow reading single user doc (e.g., for profiles) if logged in
       allow get: if request.auth != null;
     }
-
-    // Allow any authenticated user to LIST the users collection for the directory
-    match /users/{document=**} { // This rule targets the collection itself for list operations
+    // Allow listing users (e.g., for directory) if logged in
+    match /users/{document=**} {
       allow list: if request.auth != null;
     }
 
-    // Rules for courses collection (Keep your existing - allows any logged-in user read/write)
+    // Rules for courses collection (Consider making these more specific later)
     match /courses/{courseId} {
-      allow read, write: if request.auth != null;
+      // Example: Allow authenticated users to read, but only owner (professor) to write
+      // allow read: if request.auth != null;
+      // allow write: if request.auth != null && request.auth.uid == resource.data.professorId; // Assuming professorId field exists
+      // For now, keeping your original broader rule:
+       allow read, write: if request.auth != null;
     }
 
-    // Rules for research collection (Keep your existing - allows professor owner specific access)
+    // Rules for research collection
     match /research/{docId} {
-      // Original read rule was more specific - let's keep it unless you need broader read
-      // allow read: if request.auth != null && request.auth.uid == resource.data.professorId;
-      // Allowing any authenticated user to read research might be okay? Revert if needed.
-      allow read: if request.auth != null;
+      // Allow owner to read, create, update, delete
+      allow read: if request.auth != null && resource.data.professorId == request.auth.uid;
       allow create: if request.auth != null && request.resource.data.professorId == request.auth.uid;
-      allow update: if request.auth != null && request.resource.data.professorId == request.auth.uid; // Assuming request.resource for update too
+      allow update: if request.auth != null && resource.data.professorId == request.auth.uid;
       allow delete: if request.auth != null && request.auth.uid == resource.data.professorId;
     }
 
-    // The explicit default deny is no longer strictly needed as rules default to deny,
-    // but you can leave it if you prefer clarity. Ensure it doesn't override specific allows.
-    // It's generally better practice to remove it if you have covered all collections explicitly.
-    // match /{document=**} {
-    //   allow read, write: if false;
-    // }
+    // Rules for the 'opportunities' collection
+    match /opportunities/{opportunityId} {
+      // Allow any logged-in user to read opportunities
+      allow read: if request.auth != null;
+      // Allow creation only by users with role 'professor'
+      allow create: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'professor';
+      // Allow updates/deletes only by the professor who created it
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.professorId;
+    }
+
+    // --- Rules for 'interests' collection (Restored Secure List Rule) ---
+    match /interests/{interestId} {
+      // Students can create their own interest records if they have 'student' role
+      allow create: if request.auth != null &&
+                       request.resource.data.studentId == request.auth.uid &&
+                       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'student';
+
+      // Students can read (get) or delete ONLY their own interest records
+      allow get, delete: if request.auth != null && request.auth.uid == resource.data.studentId;
+
+      // Allow professors to GET any single interest document IF they own the opportunity
+      // (This rule might overlap with student 'get', Firestore allows if *any* rule passes)
+      allow get: if request.auth != null &&
+                    get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'professor' &&
+                    resource.data.professorId == request.auth.uid;
+
+      // vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+      // UPDATED LIST RULE: Allow professors OR students querying their own interests
+      allow list: if
+          // Condition 1: Allow professors (based on role check)
+          (request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'professor') ||
+          // Condition 2: Allow students IF the FIRST query filter is studentId == their own UID
+          (request.auth != null &&
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'student' 
+          );
+      // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+      // Prevent updating interest records directly
+      allow update: if false;
+    }
+    // --- End Rules for 'interests' ---
   }
 }
