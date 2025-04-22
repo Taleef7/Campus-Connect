@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react';
 import {
   Box, Button, Card, CardContent, Typography, Chip, TextField,
@@ -6,10 +7,11 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit'; // Assuming you want Edit icon
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import {
-  collection, getDocs, addDoc, deleteDoc, updateDoc, query, where, doc
+  collection, getDocs, addDoc, deleteDoc, updateDoc, query, where, doc, onSnapshot
 } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
@@ -36,30 +38,42 @@ const ProfessorCourses = () => {
         setUser(null);
       }
     });
-
     return () => unsubscribe();
   }, []);
 
+  // --- UPDATED useEffect to use onSnapshot for Courses ---
   useEffect(() => {
+    let unsubscribe = () => {}; // Initialize unsubscribe function
+
     if (user) {
-      const fetchCourses = async () => {
-        try {
-          const q = query(collection(db, 'courses'), where('professorId', '==', user.uid));
-          const querySnapshot = await getDocs(q);
-          const fetchedCourses = querySnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-          setCourses(fetchedCourses);
-        } catch (err) {
-          console.error('Error fetching courses:', err);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchCourses();
+      setLoading(true); // Set loading true when user is available
+      const q = query(collection(db, 'courses'), where('professorId', '==', user.uid));
+
+      // Set up the real-time listener
+      unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const fetchedCourses = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setCourses(fetchedCourses); // Update state with live data
+        setLoading(false); // Set loading false after first data arrives
+      }, (error) => {
+        // Handle listener errors
+        console.error('Error listening to courses:', error);
+        setLoading(false); // Stop loading on error too
+        // Optionally set an error state to display message
+      });
+
+    } else {
+      // No user, clear courses and stop loading
+      setCourses([]);
+      setLoading(false);
     }
-  }, [user]);
+
+    // Cleanup function to unsubscribe when user changes or component unmounts
+    return () => unsubscribe();
+  }, [user]); // Re-run listener setup if user changes
+  // --- End UPDATED useEffect ---
 
   const handleRemoveCourse = async (id) => {
     try {
@@ -112,13 +126,6 @@ const ProfessorCourses = () => {
       setEditingCourseId(null);
       setFormVisible(false);
 
-      const q = query(collection(db, 'courses'), where('professorId', '==', user.uid));
-      const querySnapshot = await getDocs(q);
-      const fetchedCourses = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setCourses(fetchedCourses);
     } catch (err) {
       console.error('Error saving course:', err);
     }
@@ -138,78 +145,88 @@ const ProfessorCourses = () => {
     }));
   };
 
-  if (loading) {
-    return <div>Loading courses...</div>;
-  }
+  if (loading && courses.length === 0) { // Show loading only on initial load maybe
+    return <div>Loading courses...</div>; // Or a CircularProgress
+ }
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        My Courses
-      </Typography>
+     {/* Title */}
+     <Typography variant="h4" gutterBottom>
+       My Courses
+     </Typography>
 
-      <Box display="flex" flexWrap="wrap" gap={2} style={{ position: 'relative' }}>
-        {courses.map((course) => (
-          <Card key={course.id} style={{ width: '250px', marginBottom: '20px' }}>
-            <CardContent>
-              <Chip
-                label={course.status === 'Ongoing' ? 'Ongoing' : 'Completed'}
-                color={course.status === 'Ongoing' ? 'primary' : 'secondary'}
-              />
-              <Typography variant="h6">{course.courseName}</Typography>
-              <Typography variant="body2">{course.description}</Typography>
-              {course.link && (
-                <Typography variant="body2" color="primary">
-                  <a href={course.link} target="_blank" rel="noopener noreferrer">
-                    Go to Course
-                  </a>
-                </Typography>
-              )}
+      {/* Add Course Button (triggers dialog) */}
+     <Button
+       variant="contained"
+       onClick={() => {
+         setNewCourse({ courseName: '', description: '', status: 'Ongoing', link: '' });
+         setEditingCourseId(null);
+         setFormVisible(true);
+       }}
+      // Using sx for consistency, but style prop is also fine
+       sx={{
+            // Consider less absolute positioning, maybe just mb: 2? Or keep if needed.
+            // position: 'absolute',
+            // bottom: '40px',
+            // right: '20px',
+            mb: 2, // Example: Margin bottom instead of absolute
+            float: 'right', // Example: Float right
+            // ... other styles like borderRadius, padding etc. if desired
+       }}
+       startIcon={<AddIcon />}
+     >
+       Add Course
+     </Button>
 
-              <Button
-                onClick={() => handleRemoveCourse(course.id)}
-                startIcon={<DeleteIcon />}
-                color="error"
-                style={{ marginTop: '10px' }}
-              >
-                Delete
-              </Button>
+     {/* Clear float if using float */}
+     <Box sx={{ clear: 'both', mb: 2 }} />
 
-              {/* ✅ Edit Button */}
-              <Button
-                onClick={() => handleEditCourse(course)}
-                color="primary"
-                style={{ marginTop: '10px', marginLeft: '10px' }}
-              >
-                Edit
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
+     {/* Course Cards Container */}
+     <Box display="flex" flexWrap="wrap" gap={2} > {/* Removed style={{ position: 'relative' }} unless needed for button */}
+        {/* Loading state (optional refinement) */}
+       {loading && courses.length === 0 && (
+         <Typography sx={{width: '100%', textAlign: 'center', color: 'text.secondary'}}>Loading courses...</Typography>
+       )}
+       {/* No courses message */}
+       {!loading && courses.length === 0 && (
+         <Typography sx={{width: '100%', textAlign: 'center', color: 'text.secondary'}}>No courses added yet.</Typography>
+       )}
 
-        <Button
-          variant="contained"
-          onClick={() => {
-            setNewCourse({ courseName: '', description: '', status: 'Ongoing', link: '' });
-            setEditingCourseId(null); // ✅ Clear edit mode on Add
-            setFormVisible(true);
-          }}
-          style={{
-            position: 'absolute',
-            bottom: '40px',
-            right: '20px',
-            borderRadius: '8px',
-            padding: '10px 20px',
-            backgroundColor: '#1976d2',
-            color: '#fff',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-            fontSize: '16px',
-          }}
-          startIcon={<AddIcon />}
-        >
-          Add Course
-        </Button>
-      </Box>
+       {/* Mapping through courses */}
+       {courses.map((course) => (
+         <Card key={course.id} sx={{ width: '250px' }}> {/* Use sx prop */}
+           <CardContent>
+             {/* Chip for Status */}
+             <Chip
+               label={course.status === 'Ongoing' ? 'Ongoing' : 'Completed'}
+               color={course.status === 'Ongoing' ? 'primary' : 'secondary'}
+               size="small" // Added size small
+               sx={{mb: 1}} // Added margin bottom
+             />
+             {/* Course Name */}
+             <Typography variant="h6" gutterBottom>{course.courseName}</Typography> {/* Added gutterBottom */}
+             {/* Description */}
+             <Typography variant="body2" sx={{ mb: 1 }}>{course.description}</Typography> {/* Added margin bottom */}
+             {/* Link */}
+             {course.link && (
+               <Typography variant="body2" color="primary" sx={{ mb: 1 }}> {/* Added margin bottom */}
+                 <a href={course.link} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>
+                   Go to Course
+                 </a>
+               </Typography>
+             )}
+
+             {/* Action Buttons */}
+             <Box sx={{mt: 'auto', pt: 1, display: 'flex', justifyContent: 'space-between', borderTop: '1px solid lightgrey'}}> {/* Pushes buttons down */}
+               <Button onClick={() => handleEditCourse(course)} color="primary" size="small" startIcon={<EditIcon/>}> Edit </Button>
+               <Button onClick={() => handleRemoveCourse(course.id)} startIcon={<DeleteIcon />} color="error" size="small"> Delete </Button>
+             </Box>
+           </CardContent>
+         </Card>
+       ))}
+     </Box>
+
 
       <Dialog open={isFormVisible} onClose={() => setFormVisible(false)}>
         <DialogTitle>{editingCourseId ? 'Edit Course' : 'Add New Course'}</DialogTitle>

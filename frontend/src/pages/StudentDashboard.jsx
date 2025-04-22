@@ -9,7 +9,7 @@ import {
 } from '@mui/material';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { onSnapshot, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'; // Import storage functions
 import { app } from '../firebase'; // Import app
 
@@ -20,6 +20,8 @@ import EditableField from '../components/common/EditableField'; // Reuse Editabl
 import EditableTextArea from '../components/common/EditableTextArea'; // Reuse EditableTextArea
 import FileUploadField from '../components/common/FileUploadField'; // Reuse FileUploadField
 import OpportunityFeed from '../components/opportunities/OpportunityFeed'; // Make sure this import exists and path is correct
+import StudentExperienceResearch from '../components/profile/StudentExperienceResearch'; // Adjust path if needed
+import StudentCoursesEnrolled from '../components/profile/StudentCoursesEnrolled'; // Adjust path if needed
 
 // Icons (Optional, but needed if reusing ProfileHeader with edit icons etc.)
 import EditIcon from '@mui/icons-material/Edit';
@@ -73,60 +75,80 @@ const StudentDashboard = () => {
   // Note: Students likely don't have cover photos, so we omit cover state/handlers
 
   // --- Effects ---
+  // --- UPDATED useEffect for Realtime Data ---
   useEffect(() => {
     setUiLoading(true);
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (!currentUser) {
-        navigate('/student-login');
-        setUiLoading(false);
-        return;
-      }
-      // --- CHECK if email is verified FIRST ---
+    let firestoreUnsubscribe = () => {}; // Initialize unsubscribe function for Firestore
+
+    // Listen for Auth changes
+    const authUnsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        // Clean up previous Firestore listener if user changes or logs out
+        firestoreUnsubscribe();
+
+        if (!currentUser) {
+            navigate('/student-login');
+            setUiLoading(false);
+            setUser(null); // Clear user
+            setStudentData(null); // Clear data
+            return;
+        }
         if (!currentUser.emailVerified) {
-          console.warn(`User ${currentUser.uid} email not verified. Redirecting.`);
-          // Optional: You could show a "Please Verify" message instead of immediate logout
-          // await signOut(auth); // Maybe don't sign out here, let them stay logged in but blocked
-          setErrorMsg("Your email is not verified. Please check your inbox for the verification link."); // Add setErrorMsg state if needed, or redirect differently
-          navigate('/student-login'); // Redirect to login, maybe with a message param?
-          setUiLoading(false);
-          return; // Stop processing
-      }
-      // --- End Email Verification Check ---
-      setUser(currentUser);
-      try {
+             console.warn(`User ${currentUser.uid} email not verified.`);
+             setErrorMsg("Verify your email.");
+             navigate('/student-login'); // Or show verify message page
+             setUiLoading(false);
+             setUser(null); // Clear user
+             setStudentData(null); // Clear data
+             return;
+        }
+
+        // Set authenticated user
+        setUser(currentUser);
+
+        // Set up the Firestore listener for the user's document
         const docRef = doc(db, 'users', currentUser.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-        // --- ROLE CHECK ---
-        if (data.role !== 'student') {
-          console.warn(`User ${currentUser.uid} attempted to access student dashboard but has role: ${data.role}`);
-          await signOut(auth); // Log out the user
-          navigate('/student-login'); // Redirect to student login (or landing page)
-          setUiLoading(false);
-          return; // Stop further processing
-        }
-        // --- End ROLE CHECK ---
-          setStudentData(data); // Set data only if role is correct
-        } else {
-          // This case means user exists in Auth but not Firestore (shouldn't happen with current signup)
-          console.error("Firestore document missing for authenticated user:", currentUser.uid);
-          await signOut(auth); // Log out inconsistent user
-          navigate('/student-login');
-          setUiLoading(false);
-          return;
-        }
-      } catch (error) {
-        console.error("Error fetching student data:", error);
-        // Handle fetch error state? Maybe redirect to login after logging out.
-         await signOut(auth);
-         navigate('/student-login');
-      } finally {
-        setUiLoading(false);
-      }
+
+        // onSnapshot returns an unsubscribe function
+        firestoreUnsubscribe = onSnapshot(docRef, (docSnap) => {
+            // Runs whenever the document changes
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                // Role check
+                if (data.role !== 'student') {
+                    console.warn(`User ${currentUser.uid} is not a student.`);
+                    signOut(auth).then(() => navigate('/student-login'));
+                    setStudentData(null);
+                } else {
+                    // Update state with the latest data
+                    setStudentData({ id: docSnap.id, ...data });
+                    setErrorMsg(''); // Clear errors on success
+                }
+            } else {
+                console.error("Firestore document missing for authenticated user:", currentUser.uid);
+                setErrorMsg("Error loading profile data.");
+                signOut(auth).then(() => navigate('/student-login'));
+                setStudentData(null);
+            }
+            setUiLoading(false); // Stop loading after first snapshot/error
+        }, (error) => {
+            // Handle listener errors
+            console.error("Error listening to student data:", error);
+            setErrorMsg("Failed to load profile in real-time.");
+            setStudentData(null);
+            setUiLoading(false);
+            // Maybe logout on persistent errors
+            // signOut(auth).then(() => navigate('/student-login'));
+        });
+
     });
-    return () => unsubscribe();
-  }, [navigate]);
+
+    // Cleanup function: Unsubscribe from both listeners
+    return () => {
+        authUnsubscribe();
+        firestoreUnsubscribe();
+    };
+}, [navigate]); // Dependency array
+
 
   // --- Event Handlers ---
   const handleSignOut = async () => {
@@ -136,6 +158,7 @@ const StudentDashboard = () => {
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
   };
+
 
   // --- Save Handlers for Profile Fields ---
   // Generic field update function
@@ -258,7 +281,7 @@ const StudentDashboard = () => {
 
         <Tabs value={tabValue} onChange={handleTabChange} variant="scrollable" scrollButtons="auto" aria-label="Student Dashboard Tabs" textColor="primary" indicatorColor="primary" sx={{ borderBottom: 1, borderColor: 'divider' }} >
           <Tab label="Profile" {...a11yProps(0)} />
-          <Tab label="Research & Interests" {...a11yProps(1)} />
+          <Tab label="Experience and Research" {...a11yProps(1)} />
           <Tab label="Courses Enrolled" {...a11yProps(2)} />
           <Tab label="Opportunities Interested In" {...a11yProps(3)} />
         </Tabs>
@@ -336,20 +359,19 @@ const StudentDashboard = () => {
            </Box>
         </TabPanel>
 
-        {/* --- Placeholder Tabs --- */}
+        {/* +++ Updated TabPanel +++ */}
         <TabPanel value={tabValue} index={1}>
-           <Typography variant="h6">Research & Interests</Typography>
-           <Typography variant="body2" color="textSecondary">(Content for US3.3 will go here)</Typography>
-           {/* Future: Component to list/edit interests */}
+            {/* Render the new component, passing data */}
+            {/* isSaving is passed for profile edits, not relevant here */}
+            <StudentExperienceResearch studentData={studentData} />
         </TabPanel>
+        {/* +++ End Update +++ */}
         <TabPanel value={tabValue} index={2}>
-           <Typography variant="h6">Courses Enrolled</Typography>
-            <Typography variant="body2" color="textSecondary">(Content for US3.4 will go here)</Typography>
-           {/* Future: List of courses */}
+           {/* Render the new courses component */}
+           <StudentCoursesEnrolled studentData={studentData} />
         </TabPanel>
         <TabPanel value={tabValue} index={3}>
-            <Typography variant="h6">Opportunites</Typography>
-            <Typography variant="body2" color="textSecondary">(Content for US3.5 will go here)</Typography>
+            <Typography variant="body2" color="textSecondary"></Typography>
            {/* Future: List of bookmarked/applied opportunties */}
            <OpportunityFeed />
         </TabPanel>

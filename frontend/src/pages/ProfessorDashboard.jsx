@@ -23,6 +23,7 @@ import ProfileInfoSection from '../components/profile/ProfileInfoSection'; // <-
 import AddOpportunityForm from '../components/opportunities/AddOpportunityForm'; // Assuming this is the correct path for AddOpportunityForm
 import OpportunityListItem from '../components/opportunities/OpportunityListItem'; // Assuming this is the correct path for OpportunityListItem
 import InterestedStudentsDialog from '../components/opportunities/InterestedStudentsDialog'; // Assuming this is the correct path for InterestedStudentsDialog
+import ProfessorExperienceResearch from '../components/profile/ProfessorExperienceResearch'; // Adjust path if needed
 
 // Icons
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -95,54 +96,68 @@ const ProfessorDashboard = () => {
   const navigate = useNavigate();
   const storage = getStorage(app);
 
-  // --- Effects ---
+  // +++ UPDATED useEffect for Realtime Professor Data +++
   useEffect(() => {
     setUiLoading(true);
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (!currentUser) { navigate('/professor-login'); setUiLoading(false); return; }
-      // --- CHECK if email is verified FIRST ---
-      if (!currentUser.emailVerified) {
-        console.warn(`User ${currentUser.uid} email not verified. Redirecting.`);
-        // Optional: Show message
-        // await signOut(auth);
-        navigate('/professor-login'); // Redirect to login
-        setUiLoading(false);
-        return;
-    }
-     // --- End Email Verification Check ---
-      setUser(currentUser);
-      try {
-          const docRef = doc(db, 'users', currentUser.uid);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-              const data = docSnap.data();
-              // --- ROLE CHECK ---
-              if (data.role !== 'professor') {
-                console.warn(`User ${currentUser.uid} attempted to access professor dashboard but has role: ${data.role}`);
-                await signOut(auth); // Log out the user
-                navigate('/professor-login'); // Redirect to professor login
-                setUiLoading(false);
-                return; // Stop further processing
-              }
-              // --- End ROLE CHECK ---
-              setProfessorData(data); // Set data only if role is correct
-          } else {
-              console.error("Firestore document missing for authenticated user:", currentUser.uid);
-              await signOut(auth);
-              navigate('/professor-login');
-              setUiLoading(false);
-              return;
-          }
-      } catch (error) {
-          console.error("Error fetching professor data:", error);
-          await signOut(auth);
-          navigate('/professor-login');
-      } finally {
-          setUiLoading(false);
-      }
+    let firestoreUnsubscribe = () => {}; // Initialize unsubscribe function
+
+    const authUnsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        // Clean up previous Firestore listener
+        firestoreUnsubscribe();
+
+        if (!currentUser) {
+            navigate('/professor-login');
+            setUiLoading(false);
+            setUser(null);
+            setProfessorData(null);
+            return;
+        }
+        if (!currentUser.emailVerified) {
+             console.warn(`User ${currentUser.uid} email not verified.`);
+             navigate('/professor-login'); // Or show verify message
+             setUiLoading(false);
+             setUser(null);
+             setProfessorData(null);
+             return;
+        }
+
+        setUser(currentUser);
+
+        // Set up Firestore listener
+        const docRef = doc(db, 'users', currentUser.uid);
+        firestoreUnsubscribe = onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                // Role check
+                if (data.role !== 'professor') {
+                    console.warn(`User ${currentUser.uid} is not a professor.`);
+                    signOut(auth).then(() => navigate('/professor-login'));
+                    setProfessorData(null);
+                } else {
+                    // Update state with latest data
+                    setProfessorData({ id: docSnap.id, ...data });
+                }
+            } else {
+                console.error("Firestore document missing for professor:", currentUser.uid);
+                signOut(auth).then(() => navigate('/professor-login'));
+                setProfessorData(null);
+            }
+            setUiLoading(false);
+        }, (error) => {
+            console.error("Error listening to professor data:", error);
+            // Optionally handle listener errors (e.g., show message)
+            setProfessorData(null);
+            setUiLoading(false);
+        });
     });
-    return () => unsubscribe();
-  }, [navigate]);
+
+    // Cleanup listeners on component unmount
+    return () => {
+        authUnsubscribe();
+        firestoreUnsubscribe();
+    };
+}, [navigate]); // Keep navigate dependency
+// +++ End UPDATED useEffect +++
 
 
   // --- Effect to Fetch Professor's Opportunities (Real-time) ---
@@ -270,6 +285,26 @@ const ProfessorDashboard = () => {
      } catch (error) { console.error('Error removing resume:', error); alert(`Error removing resume: ${error.message}`); }
      finally { setIsSaving(false); }
   };
+
+  // +++ Add Handler for Department +++
+  const handleDepartmentSave = async (newDepartment) => {
+    if (!user?.uid) return;
+    setIsSaving(true);
+    try {
+      const docRef = doc(db, 'users', user.uid);
+      // Consider trimming input, or handle empty string if needed
+      const departmentToSave = newDepartment.trim();
+      await updateDoc(docRef, { department: departmentToSave });
+      setProfessorData((prev) => ({ ...prev, department: departmentToSave }));
+      console.log("Department updated successfully!");
+    } catch (error) {
+      console.error('Error updating department:', error);
+      alert(`Error saving department: ${error.message}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  // +++ End Department Handler +++
 
 
   // Modal Trigger Handlers
@@ -462,7 +497,7 @@ const ProfessorDashboard = () => {
 
         <Tabs value={tabValue} onChange={handleTabChange} variant="fullWidth" aria-label="Professor Dashboard Tabs" textColor="primary" indicatorColor="primary" sx={{ borderBottom: 1, borderColor: 'divider' }} >
           <Tab label="Profile" {...a11yProps(0)} />
-          <Tab label="Research & Interests" {...a11yProps(1)} />
+          <Tab label="Experience and Research" {...a11yProps(1)} />
           <Tab label="Courses Offered" {...a11yProps(2)} />
           <Tab label="Opportunities" {...a11yProps(3)} /> {/* Renamed "Discussion" Tab */}
         </Tabs>
@@ -487,11 +522,17 @@ const ProfessorDashboard = () => {
             handleAboutSave={handleAboutSave}
             handleResumeSave={handleResumeSave}
             handleResumeDelete={handleResumeDelete}
+            handleDepartmentSave={handleDepartmentSave} // <-- Pass prop here
           />
         </TabPanel>
 
         {/* Other Tabs */}
-        <TabPanel value={tabValue} index={1}> <ProfessorResearch /> </TabPanel>
+        {/* +++ Update TabPanel 1 +++ */}
+        <TabPanel value={tabValue} index={1}>
+           {/* Render the new component */}
+           <ProfessorExperienceResearch professorData={professorData} />
+        </TabPanel>
+        {/* +++ End Update +++ */}
         <TabPanel value={tabValue} index={2}> <ProfessorCourses /> </TabPanel>
         {/* Opportunities Tab Panel */}
         <TabPanel value={tabValue} index={3}>

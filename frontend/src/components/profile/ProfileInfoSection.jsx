@@ -16,6 +16,7 @@ const ProfileInfoSection = ({
   handleAboutSave,
   handleResumeSave,
   handleResumeDelete,
+  handleDepartmentSave, // <-- Destructure the new handler prop
 }) => {
 
   const resumeLink = professorData?.resumeLink || ''; // Extract for clarity
@@ -55,6 +56,20 @@ const ProfileInfoSection = ({
         containerSx={{ mb: 2, '& .MuiTypography-root': { color: 'text.secondary' } }}
         isSaving={isSaving}
       />
+
+      {/* +++ Add Department Field +++ */}
+      <EditableField
+        label="Department"
+        value={professorData?.department} // Bind to department field
+        onSave={handleDepartmentSave}    // Connect to the save handler
+        typographyVariant="body1"        // Choose appropriate size
+        placeholder="(e.g., Computer Science)"
+        emptyText={`Department: ${professorData?.department || '(Not set)'}`}
+        textFieldProps={{ size: 'small' }}
+        containerSx={{ mb: 2 }}          // Add margin bottom
+        isSaving={isSaving}
+      />
+      {/* +++ End Department Field +++ */}
 
       {/* --- Render EditableTextArea for About --- */}
       <Box sx={{ mb: 3 }}>
