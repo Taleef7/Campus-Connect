@@ -10,15 +10,20 @@ service cloud.firestore {
       // Allow reading single user doc (e.g., for profiles) if logged in
       allow get: if request.auth != null;
 
-      // +++ Rules for Student Enrolled Courses Subcollection +++
       match /enrolledCourses/{courseDocId} {
          // Allow anyone to read the list of enrolled courses
          allow read: if true;
          // Allow ONLY the specific student to create, update, delete their courses
          allow write: if request.auth != null && request.auth.uid == userId;
       }
-      // +++ End Subcollection Rules +++
 
+      // Rules for Experience Subcollection
+      match /experiences/{experienceId} {
+        // Allow owner to read/create/update/delete their own experience entries
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+        // Allow any logged-in user to read others' experiences (for public profile view)
+        // allow read: if request.auth != null; // Add this line back if needed for public view later
+      }
     }
 
     // Allow listing users (e.g., for directory) if logged in
