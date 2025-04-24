@@ -1,407 +1,131 @@
-/* eslint-disable no-unused-vars */
-/* eslint-disable react/prop-types */
-// frontend/src/pages/StudentDashboard.jsx
-import React, { useEffect, useState } from 'react'; // Import React
+// src/pages/StudentDashboard.jsx
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Box, Typography, Button, Tabs, Tab, Paper, CircularProgress, Avatar, // Added Tabs, Tab, Paper, CircularProgress, Avatar
-  Dialog, DialogTitle, DialogContent, DialogActions, IconButton // Added Modals and IconButton for potential photo edit
-} from '@mui/material';
-import { auth, db } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { onSnapshot, doc, updateDoc, getDoc } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'; // Import storage functions
-import { app } from '../firebase'; // Import app
+import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
 
-// Import reusable components
 import DashboardLayout from '../components/dashboard/DashboardLayout';
-import ProfileHeader from '../components/profile/ProfileHeader'; // Reuse ProfileHeader
-import EditableField from '../components/common/EditableField'; // Reuse EditableField
-import EditableTextArea from '../components/common/EditableTextArea'; // Reuse EditableTextArea
-import FileUploadField from '../components/common/FileUploadField'; // Reuse FileUploadField
-import OpportunityFeed from '../components/opportunities/OpportunityFeed'; // Make sure this import exists and path is correct
-import StudentExperienceResearch from '../components/profile/StudentExperienceResearch'; // Adjust path if needed
-import StudentCoursesEnrolled from '../components/profile/StudentCoursesEnrolled'; // Adjust path if needed
+import ProfileHeader from '../components/profile/ProfileHeader';
+import EditableField from '../components/common/EditableField';
+import EditableTextArea from '../components/common/EditableTextArea';
+import FileUploadField from '../components/common/FileUploadField';
+import StudentExperienceResearch from '../components/profile/StudentExperienceResearch';
+import StudentCoursesEnrolled from '../components/profile/StudentCoursesEnrolled';
+import OpportunityFeed from '../components/opportunities/OpportunityFeed';
 
-// Icons (Optional, but needed if reusing ProfileHeader with edit icons etc.)
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import CheckIcon from '@mui/icons-material/Check';
-import CloseIcon from '@mui/icons-material/Close';
-
-// TabPanel helper component (copy from ProfessorDashboard or create common component)
-function TabPanel(props) {
-  const { children, value, index, ...other } = props;
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`student-dashboard-tabpanel-${index}`}
-      aria-labelledby={`student-dashboard-tab-${index}`}
-      {...other}
-    >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          {children}
-        </Box>
-      )}
-    </div>
-  );
-}
-
-// a11yProps helper function for Tabs
-function a11yProps(index) {
-  return {
-    id: `student-dashboard-tab-${index}`,
-    'aria-controls': `student-dashboard-tabpanel-${index}`,
-  };
-}
-
+import { AccountCircle, School, WorkOutline, Star } from '@mui/icons-material';
+import { Box, CircularProgress, Typography, Paper } from '@mui/material';
 
 const StudentDashboard = () => {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [studentData, setStudentData] = useState(null);
-  const [uiLoading, setUiLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [tabValue, setTabValue] = useState(0); // State for current tab index
-  const [errorMsg, setErrorMsg] = useState(""); // Added state for error messages
-  const navigate = useNavigate();
-  const storage = getStorage(app); // Initialize storage
+  const [loading, setLoading] = useState(true);
+  const [selectedMenu, setSelectedMenu] = useState('Profile');
 
-  // State for Profile Picture editing (similar to ProfessorDashboard)
-  const [editPhotoMode, setEditPhotoMode] = useState(false);
-  const [photoFile, setPhotoFile] = useState(null);
-  const [viewPhotoMode, setViewPhotoMode] = useState(false);
-  // Note: Students likely don't have cover photos, so we omit cover state/handlers
+  const handleSignOut = async () => {
+    await signOut(auth);
+    navigate('/');
+  };
 
-  // --- Effects ---
-  // --- UPDATED useEffect for Realtime Data ---
+  const menuItems = [
+    { label: 'Profile', icon: <AccountCircle /> },
+    { label: 'Research & Interests', icon: <Star /> },
+    { label: 'Courses Enrolled', icon: <School /> },
+    { label: 'Opportunities Interested In', icon: <WorkOutline /> },
+  ];
+
   useEffect(() => {
-    setUiLoading(true);
-    let firestoreUnsubscribe = () => {}; // Initialize unsubscribe function for Firestore
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (!currentUser || !currentUser.emailVerified) {
+        navigate('/student-login');
+        return;
+      }
+      setUser(currentUser);
 
-    // Listen for Auth changes
-    const authUnsubscribe = onAuthStateChanged(auth, (currentUser) => {
-        // Clean up previous Firestore listener if user changes or logs out
-        firestoreUnsubscribe();
-
-        if (!currentUser) {
-            navigate('/student-login');
-            setUiLoading(false);
-            setUser(null); // Clear user
-            setStudentData(null); // Clear data
-            return;
+      const docRef = doc(db, 'users', currentUser.uid);
+      const unsubscribeDoc = onSnapshot(docRef, (docSnap) => {
+        if (docSnap.exists() && docSnap.data().role === 'student') {
+          setStudentData({ id: docSnap.id, ...docSnap.data() });
+        } else {
+          signOut(auth).then(() => navigate('/student-login'));
         }
-        if (!currentUser.emailVerified) {
-             console.warn(`User ${currentUser.uid} email not verified.`);
-             setErrorMsg("Verify your email.");
-             navigate('/student-login'); // Or show verify message page
-             setUiLoading(false);
-             setUser(null); // Clear user
-             setStudentData(null); // Clear data
-             return;
-        }
+        setLoading(false);
+      });
 
-        // Set authenticated user
-        setUser(currentUser);
-
-        // Set up the Firestore listener for the user's document
-        const docRef = doc(db, 'users', currentUser.uid);
-
-        // onSnapshot returns an unsubscribe function
-        firestoreUnsubscribe = onSnapshot(docRef, (docSnap) => {
-            // Runs whenever the document changes
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                // Role check
-                if (data.role !== 'student') {
-                    console.warn(`User ${currentUser.uid} is not a student.`);
-                    signOut(auth).then(() => navigate('/student-login'));
-                    setStudentData(null);
-                } else {
-                    // Update state with the latest data
-                    setStudentData({ id: docSnap.id, ...data });
-                    setErrorMsg(''); // Clear errors on success
-                }
-            } else {
-                console.error("Firestore document missing for authenticated user:", currentUser.uid);
-                setErrorMsg("Error loading profile data.");
-                signOut(auth).then(() => navigate('/student-login'));
-                setStudentData(null);
-            }
-            setUiLoading(false); // Stop loading after first snapshot/error
-        }, (error) => {
-            // Handle listener errors
-            console.error("Error listening to student data:", error);
-            setErrorMsg("Failed to load profile in real-time.");
-            setStudentData(null);
-            setUiLoading(false);
-            // Maybe logout on persistent errors
-            // signOut(auth).then(() => navigate('/student-login'));
-        });
-
+      return () => unsubscribeDoc();
     });
 
-    // Cleanup function: Unsubscribe from both listeners
-    return () => {
-        authUnsubscribe();
-        firestoreUnsubscribe();
-    };
-}, [navigate]); // Dependency array
+    return () => unsubscribe();
+  }, [navigate]);
 
-
-  // --- Event Handlers ---
-  const handleSignOut = async () => {
-    try { await signOut(auth); navigate('/'); } catch (error) { console.error("Sign out error:", error); }
+  const handleProfileUpdate = async (data) => {
+    if (!user?.uid) return;
+    const docRef = doc(db, 'users', user.uid);
+    await updateDoc(docRef, data);
   };
 
-  const handleTabChange = (event, newValue) => {
-    setTabValue(newValue);
+  const renderContent = () => {
+    if (loading || !studentData) {
+      return (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}>
+          <CircularProgress />
+        </Box>
+      );
+    }
+
+    switch (selectedMenu) {
+      case 'Profile':
+        return (
+          <Paper elevation={2} sx={{ borderRadius: 2, p: 3, backgroundColor: '#fff', boxShadow: '0px 4px 16px rgba(0,0,0,0.05)' }}>
+            <ProfileHeader
+              coverLink={studentData.coverLink}
+              photoLink={studentData.photoLink}
+              professorName={studentData.name}
+              onEditCover={() => {}}
+              onEditPhoto={() => {}}
+              onViewCover={() => {}}
+              onViewPhoto={() => {}}
+            />
+            <Box sx={{ mt: 2 }}>
+              <EditableField label="Name" value={studentData.name} onSave={(v) => handleProfileUpdate({ name: v })} />
+              <EditableField label="Major" value={studentData.major} onSave={(v) => handleProfileUpdate({ major: v })} />
+              <EditableField label="Year" value={studentData.year} onSave={(v) => handleProfileUpdate({ year: v })} />
+              <EditableTextArea label="Description / Bio" value={studentData.description || ''} onSave={(v) => handleProfileUpdate({ description: v })} />
+              <FileUploadField
+                label="Resume / CV"
+                filePath={studentData.resumePath}
+                fileUrl={studentData.resumeLink}
+                onSave={(url, path) => handleProfileUpdate({ resumeLink: url, resumePath: path })}
+                onDelete={() => handleProfileUpdate({ resumeLink: '', resumePath: '' })}
+              />
+            </Box>
+          </Paper>
+        );
+      case 'Research & Interests':
+        return <StudentExperienceResearch />;
+      case 'Courses Enrolled':
+        return <StudentCoursesEnrolled />;
+      case 'Opportunities Interested In':
+        return <OpportunityFeed />;
+      default:
+        return <Typography>Invalid selection</Typography>;
+    }
   };
-
-
-  // --- Save Handlers for Profile Fields ---
-  // Generic field update function
-  const handleProfileUpdate = async (fieldData) => {
-      if (!user?.uid) return;
-      setIsSaving(true);
-      const docRef = doc(db, 'users', user.uid);
-      try {
-          await updateDoc(docRef, fieldData);
-          setStudentData((prev) => ({ ...prev, ...fieldData }));
-      } catch (error) {
-          console.error(`Error updating student profile field(s):`, error);
-          alert(`Error saving profile: ${error.message}`);
-      } finally {
-          setIsSaving(false);
-      }
-  };
-
-  // Specific handlers using the generic function
-  const handleNameSave = (newName) => handleProfileUpdate({ name: newName.trim() });
-  const handleMajorSave = (newMajor) => handleProfileUpdate({ major: newMajor.trim() }); // Added Major
-  const handleYearSave = (newYear) => handleProfileUpdate({ year: newYear.trim() }); // Added Year
-  const handleDescriptionSave = (newDescription) => handleProfileUpdate({ description: newDescription.trim() }); // Added Description
-
-  // Resume Handlers (similar to professor's)
-  const handleResumeSave = async (newResumeFile) => {
-    if (!user?.uid || !newResumeFile) return;
-    setIsSaving(true);
-    const oldPath = studentData?.resumePath;
-    const newPath = `resumes/${user.uid}/${Date.now()}_${newResumeFile.name}`; // Using same path structure for simplicity
-    try {
-        const docRef = doc(db, 'users', user.uid);
-        if (oldPath) { const oldRef = ref(storage, oldPath); await deleteObject(oldRef).catch(err => console.warn("Old resume delete failed:", err)); }
-        const storageRef = ref(storage, newPath);
-        await uploadBytes(storageRef, newResumeFile);
-        const downloadURL = await getDownloadURL(storageRef);
-        await updateDoc(docRef, { resumeLink: downloadURL, resumePath: newPath });
-        setStudentData((prev) => ({ ...prev, resumeLink: downloadURL, resumePath: newPath }));
-    } catch (error) { console.error('Error uploading resume:', error); alert(`Error uploading resume: ${error.message}`); }
-    finally { setIsSaving(false); }
-  };
-
-  const handleResumeDelete = async () => {
-     const pathToDelete = studentData?.resumePath;
-     if (!user?.uid || !pathToDelete) return;
-     if (!window.confirm('Are you sure you want to delete the resume?')) return;
-     setIsSaving(true);
-     try {
-         const docRef = doc(db, 'users', user.uid);
-         const storageRef = ref(storage, pathToDelete);
-         await deleteObject(storageRef);
-         await updateDoc(docRef, { resumeLink: '', resumePath: '' });
-         setStudentData((prev) => ({ ...prev, resumeLink: '', resumePath: '' }));
-     } catch (error) { console.error('Error removing resume:', error); alert(`Error removing resume: ${error.message}`); }
-     finally { setIsSaving(false); }
-  };
-
-  // --- Photo Handlers (Copied/Adapted from ProfessorDashboard) ---
-  const handleTriggerViewPhoto = () => { (studentData?.photoLink) ? setViewPhotoMode(true) : handleTriggerEditPhoto(); };
-  const handleTriggerEditPhoto = () => { setEditPhotoMode(true); setPhotoFile(null); setViewPhotoMode(false); };
-  const handlePhotoFileChange = (e) => { if (e.target.files && e.target.files[0]) { setPhotoFile(e.target.files[0]); } };
-  const handlePhotoCancel = () => { setEditPhotoMode(false); setPhotoFile(null); };
-  const handlePhotoSave = async () => {
-    if (!user?.uid || !photoFile) return;
-    setIsSaving(true);
-    const oldPath = studentData?.photoPath;
-    const newPath = `photos/${user.uid}/${Date.now()}_${photoFile.name}`; // Using same photos path
-    try {
-      const docRef = doc(db, 'users', user.uid);
-      if (oldPath) { const oldRef = ref(storage, oldPath); await deleteObject(oldRef).catch(err => console.warn("Old photo delete failed:", err)); }
-      const storageRef = ref(storage, newPath);
-      await uploadBytes(storageRef, photoFile);
-      const downloadURL = await getDownloadURL(storageRef);
-      await updateDoc(docRef, { photoLink: downloadURL, photoPath: newPath });
-      setStudentData((prev) => ({ ...prev, photoLink: downloadURL, photoPath: newPath }));
-      setEditPhotoMode(false); setPhotoFile(null);
-    } catch (error) { console.error('Error uploading photo:', error); alert(`Error uploading photo: ${error.message}`);}
-    finally { setIsSaving(false); }
-  };
-  const handlePhotoDelete = async () => {
-    const pathToDelete = studentData?.photoPath;
-    if (!user?.uid || !pathToDelete) return;
-    if (!window.confirm('Are you sure you want to delete the profile photo?')) return;
-    setIsSaving(true);
-    try {
-        const docRef = doc(db, 'users', user.uid);
-        const storageRef = ref(storage, pathToDelete);
-        await deleteObject(storageRef);
-        await updateDoc(docRef, { photoLink: '', photoPath: '' });
-        setStudentData((prev) => ({ ...prev, photoLink: '', photoPath: '' }));
-        setEditPhotoMode(false); setViewPhotoMode(false); setPhotoFile(null);
-    } catch (error) { console.error('Error removing photo:', error); alert(`Error removing photo: ${error.message}`); }
-    finally { setIsSaving(false); }
-  };
-
-  // --- Render Logic ---
-  if (uiLoading) {
-     return ( <DashboardLayout handleSignOut={handleSignOut}> <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}> <CircularProgress /> </Box> </DashboardLayout> );
-   }
-
-  // Only proceed to render dashboard content if studentData is loaded and role check passed
-  if (!studentData) {
-    // This case might occur briefly or if there was an error caught above
-    // You might want a more specific error message or redirect here too
-     return ( <DashboardLayout handleSignOut={handleSignOut}><Typography>Error loading data or unauthorized.</Typography></DashboardLayout>);
-   }
-
-  const photoLink = studentData?.photoLink || '';
-  const resumeLink = studentData?.resumeLink || '';
 
   return (
-    <DashboardLayout handleSignOut={handleSignOut} dashboardPath='/student-dashboard'>
-      <Box sx={{ mb: 3, textAlign: 'center' }}>
-        <Typography variant="h4" gutterBottom> Student Dashboard </Typography>
-        {studentData && ( <Typography variant="h6" color="text.secondary"> Welcome, {studentData.name || 'Student'}! </Typography> )}
+    <DashboardLayout
+      handleSignOut={handleSignOut}
+      selectedMenu={selectedMenu}
+      onMenuSelect={setSelectedMenu}
+      menuItems={menuItems}
+    >
+      <Box sx={{ display: 'flex', justifyContent: 'flex-start', p: 0, mt: 0, width: '100%' }}>
+        <Box sx={{ flexGrow: 1, maxWidth: '960px' }}>
+          {renderContent()}
+        </Box>
       </Box>
-
-      <Paper elevation={3} sx={{ borderRadius: 2, position: 'relative' }}>
-        {isSaving && ( <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}> <CircularProgress /> </Box> )}
-
-        <Tabs value={tabValue} onChange={handleTabChange} variant="scrollable" scrollButtons="auto" aria-label="Student Dashboard Tabs" textColor="primary" indicatorColor="primary" sx={{ borderBottom: 1, borderColor: 'divider' }} >
-          <Tab label="Profile" {...a11yProps(0)} />
-          <Tab label="Experience and Research" {...a11yProps(1)} />
-          <Tab label="Courses Enrolled" {...a11yProps(2)} />
-          <Tab label="Opportunities Interested In" {...a11yProps(3)} />
-        </Tabs>
-
-        {/* --- Profile Tab (US3.1 & US3.2) --- */}
-        <TabPanel value={tabValue} index={0}>
-           {/* Use ProfileHeader - Adapt props as needed (no cover photo handling) */}
-           <ProfileHeader
-             // coverLink={null} // Explicitly no cover link
-             photoLink={photoLink}
-             professorName={studentData?.name} // Pass student name
-             // No cover handlers needed
-             // onEditCover={() => {}}
-             // onViewCover={() => {}}
-             onEditPhoto={handleTriggerEditPhoto} // Use photo handlers
-             onViewPhoto={handleTriggerViewPhoto}
-           />
-           {/* Profile Info Section */}
-           <Box sx={{ textAlign: 'left', pt: 2, pl: { xs: 0, sm: 2 } }}>
-                <EditableField
-                    label="Full Name"
-                    value={studentData?.name}
-                    onSave={handleNameSave}
-                    typographyVariant="h5" // Adjust styling as needed
-                    textFieldProps={{ size: 'small' }}
-                    containerSx={{ mb: 1, fontWeight: 'bold' }}
-                    isSaving={isSaving}
-                />
-                <EditableField
-                    label="Major"
-                    value={studentData?.major}
-                    onSave={handleMajorSave}
-                    typographyVariant="body1"
-                    placeholder="(e.g., Computer Science)"
-                    emptyText="Major: (Not set)"
-                    textFieldProps={{ size: 'small' }}
-                    containerSx={{ mb: 1 }}
-                    isSaving={isSaving}
-                />
-                 <EditableField
-                    label="Year"
-                    value={studentData?.year}
-                    onSave={handleYearSave}
-                    typographyVariant="body1"
-                    placeholder="(e.g., Sophomore, Junior, PhD Year 2)"
-                    emptyText="Year: (Not set)"
-                    textFieldProps={{ size: 'small' }}
-                    containerSx={{ mb: 2 }}
-                    isSaving={isSaving}
-                />
-                 <Box sx={{ mb: 3 }}>
-                    <Typography variant="h6" gutterBottom sx={{ fontWeight: 'medium' }}>Description / Bio</Typography>
-                    <EditableTextArea
-                        label="Description / Bio"
-                        value={studentData?.description} // Changed field name
-                        onSave={handleDescriptionSave}
-                        placeholder="(Tell professors a bit about yourself)"
-                        emptyText="(No description provided)"
-                        textFieldProps={{ rows: 4 }}
-                        isSaving={isSaving}
-                    />
-                </Box>
-                 <FileUploadField
-                    label="Resume/CV"
-                    fileLink={resumeLink}
-                    accept=".pdf,.doc,.docx" // Allow common doc types
-                    onSave={handleResumeSave}
-                    onDelete={handleResumeDelete}
-                    isSaving={isSaving}
-                    viewButtonText="View Document"
-                    selectButtonText="Upload Resume/CV"
-                    noFileText="No resume/CV uploaded"
-                    containerSx={{ mt: 2 }}
-                 />
-           </Box>
-        </TabPanel>
-
-        {/* +++ Updated TabPanel +++ */}
-        <TabPanel value={tabValue} index={1}>
-            {/* Render the new component, passing data */}
-            {/* isSaving is passed for profile edits, not relevant here */}
-            <StudentExperienceResearch studentData={studentData} />
-        </TabPanel>
-        {/* +++ End Update +++ */}
-        <TabPanel value={tabValue} index={2}>
-           {/* Render the new courses component */}
-           <StudentCoursesEnrolled studentData={studentData} />
-        </TabPanel>
-        <TabPanel value={tabValue} index={3}>
-            <Typography variant="body2" color="textSecondary"></Typography>
-           {/* Future: List of bookmarked/applied opportunties */}
-           <OpportunityFeed />
-        </TabPanel>
-      </Paper>
-
-       {/* --- Photo Modals (Copied/Adapted from ProfessorDashboard) --- */}
-       <Dialog open={viewPhotoMode} onClose={() => !isSaving && setViewPhotoMode(false)} maxWidth="sm" fullWidth>
-         <DialogTitle>Profile Photo</DialogTitle>
-         <DialogContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            {photoLink ? ( <img src={photoLink} alt="Profile Preview" style={{ maxWidth: '100%', maxHeight: '70vh', borderRadius: '8px' }} /> ) : ( <Avatar sx={{ width: 150, height: 150, fontSize: '4rem' }}>{studentData?.name?.[0] || '?'}</Avatar> )}
-         </DialogContent>
-         <DialogActions>
-             <Button onClick={handleTriggerEditPhoto} startIcon={<EditIcon />} disabled={isSaving}>Edit</Button>
-             {photoLink && ( <Button onClick={handlePhotoDelete} color="error" startIcon={<DeleteIcon />} disabled={isSaving}>Delete</Button> )}
-             <Button onClick={() => setViewPhotoMode(false)} startIcon={<CloseIcon />} disabled={isSaving}>Close</Button>
-         </DialogActions>
-       </Dialog>
-
-       <Dialog open={editPhotoMode} onClose={() => !isSaving && handlePhotoCancel()} maxWidth="xs" fullWidth>
-          <DialogTitle>Update Profile Photo</DialogTitle>
-          <DialogContent>
-             <Button variant="outlined" component="label" fullWidth sx={{ mb: 1 }} disabled={isSaving}> {photoFile ? `Selected: ${photoFile.name}` : 'Select New Profile Image'} <input type="file" accept="image/*" hidden onChange={handlePhotoFileChange} disabled={isSaving}/> </Button>
-             {studentData?.photoLink && ( <Button variant="outlined" color="error" onClick={handlePhotoDelete} startIcon={<DeleteIcon />} fullWidth size="small" disabled={isSaving}> Remove Current Photo </Button> )}
-          </DialogContent>
-         <DialogActions>
-             <Button onClick={handlePhotoCancel} disabled={isSaving}>Cancel</Button>
-             <Button onClick={handlePhotoSave} color="primary" variant="contained" disabled={!photoFile || isSaving}>Save</Button>
-         </DialogActions>
-       </Dialog>
-
     </DashboardLayout>
   );
 };

@@ -1,61 +1,109 @@
-/* eslint-disable react/prop-types */
-/* eslint-disable no-unused-vars */
-// frontend/src/components/dashboard/DashboardLayout.jsx
-import React from 'react';
-import { Box, Typography, Button, AppBar, Toolbar, Container } from '@mui/material'; // Added AppBar, Toolbar, Container
-import { Link as RouterLink } from 'react-router-dom'; // Import Link for navigation
+// src/components/dashboard/DashboardLayout.jsx
+import {
+  Box, CssBaseline, Drawer, AppBar, Toolbar,
+  Typography, Button, List, ListItem, ListItemIcon, ListItemText, Divider
+} from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import { ExitToApp, Dashboard, Explore, Settings } from '@mui/icons-material';
 
-const DashboardLayout = ({ title, handleSignOut, children, dashboardPath }) => {
+const drawerWidth = 260;
 
-  // --- Add this console log ---
-  console.log("DashboardLayout received dashboardPath prop:", dashboardPath);
-  // --- End console log ---
+const DashboardLayout = ({ children, menuItems = [], onMenuSelect, selectedMenu, handleSignOut }) => {
+  const navigate = useNavigate();
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f3f2ef' }}>
-      {/* Use AppBar for a more standard header */}
-      <AppBar position="static" sx={{ backgroundColor: '#fff', color: 'text.primary', boxShadow: 1 }}>
-        <Toolbar>
-           {/* Campus Connect Title */}
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
-            Campus-Connect
+    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f5f7fb' }}>
+      <CssBaseline />
+
+      {/* Top Nav */}
+      <AppBar elevation={1} position="fixed" sx={{ backgroundColor: '#ffffff', color: '#000', height: 64, justifyContent: 'center' }}>
+        <Toolbar sx={{ justifyContent: 'space-between', px: 4 }}>
+          <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#3b3b3b' }}>
+            Campus Connect
           </Typography>
-
-          {/* Dashboard Link (conditionally rendered) */}
-          {dashboardPath && ( // This condition relies on dashboardPath being truthy
-            <Button component={RouterLink} to={dashboardPath} color="primary" sx={{ mr: 2 }}>
-                Dashboard
-            </Button>
-          )}
-
-          {/* Navigation Links/Buttons */}
-          <Button
-            component={RouterLink} // Use react-router Link
-            to="/directory"       // Link to the directory page
-            color="primary"       // Inherit color from AppBar's theme context
-            sx={{ mr: 2 }}        // Add some margin to the right
-           >
-             Directory
-           </Button>
-
-          {/* Sign Out Button */}
-          {handleSignOut && (
-             <Button
-              variant="contained"
-              onClick={handleSignOut}
-              size="small" // Make button slightly smaller
-            >
-              Sign Out
-            </Button>
-          )}
+          <Box>
+            <Button sx={{ mx: 1, textTransform: 'none', color: '#000' }} onClick={() => navigate('/student-dashboard')} startIcon={<Dashboard />}>Dashboard</Button>
+            <Button sx={{ mx: 1, textTransform: 'none', color: '#000' }} onClick={() => navigate('/directory')} startIcon={<Explore />}>Directory</Button>
+            <Button sx={{ mx: 1, textTransform: 'none', color: '#000' }} onClick={handleSignOut} startIcon={<ExitToApp />}>Sign Out</Button>
+          </Box>
         </Toolbar>
       </AppBar>
 
-      {/* Main Content Area - Use Container for consistency */}
-      <Container component="main" maxWidth="lg" sx={{ mt: 4, mb: 4, flexGrow: 1 }}>
-        {/* Content passed from the parent component */}
+      {/* Sidebar */}
+      <Drawer
+        variant="permanent"
+        sx={{
+          width: drawerWidth,
+          flexShrink: 0,
+          [`& .MuiDrawer-paper`]: {
+            width: drawerWidth,
+            boxSizing: 'border-box',
+            top: 64,
+            backgroundColor: '#ffffff',
+            borderRight: '1px solid #e0e0e0',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+          },
+        }}
+      >
+        {/* Top Part */}
+        <Box>
+          <Box sx={{ px: 3, pt: 3 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#666' }}>
+              Discover
+            </Typography>
+          </Box>
+          <List sx={{ mt: 1 }}>
+            {menuItems.map((item) => (
+              <ListItem
+                button
+                key={item.label}
+                selected={selectedMenu === item.label}
+                onClick={() => onMenuSelect(item.label)}
+                sx={{
+                  mx: 2,
+                  my: 1,
+                  borderRadius: 2,
+                  bgcolor: selectedMenu === item.label ? '#e9f0ff' : 'transparent',
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 36, color: selectedMenu === item.label ? '#2b72ff' : '#888' }}>
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.label}
+                  primaryTypographyProps={{
+                    fontWeight: selectedMenu === item.label ? 600 : 400,
+                    fontSize: 14,
+                    color: selectedMenu === item.label ? '#2b72ff' : '#444',
+                  }}
+                />
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+
+        {/* Bottom Settings + Sign Out */}
+        <Box sx={{ px: 2, pb: 3 }}>
+          <Divider />
+          <List>
+            <ListItem button>
+              <ListItemIcon><Settings /></ListItemIcon>
+              <ListItemText primary="Settings" />
+            </ListItem>
+            <ListItem button onClick={handleSignOut}>
+              <ListItemIcon><ExitToApp /></ListItemIcon>
+              <ListItemText primary="Sign Out" />
+            </ListItem>
+          </List>
+        </Box>
+      </Drawer>
+
+      {/* Main Content */}
+      <Box component="main" sx={{ flexGrow: 1, p: 4, pt: 10, pl: 4 }}>
         {children}
-      </Container>
+      </Box>
     </Box>
   );
 };
