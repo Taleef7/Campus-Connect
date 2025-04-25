@@ -6,7 +6,6 @@ import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 
 import DashboardLayout from '../components/dashboard/DashboardLayout';
-import ProfileHeader from '../components/profile/ProfileHeader';
 import EditableField from '../components/common/EditableField';
 import EditableTextArea from '../components/common/EditableTextArea';
 import FileUploadField from '../components/common/FileUploadField';
@@ -14,8 +13,8 @@ import StudentExperienceResearch from '../components/profile/StudentExperienceRe
 import StudentCoursesEnrolled from '../components/profile/StudentCoursesEnrolled';
 import OpportunityFeed from '../components/opportunities/OpportunityFeed';
 
-import { AccountCircle, School, WorkOutline, Star } from '@mui/icons-material';
-import { Box, CircularProgress, Typography, Paper } from '@mui/material';
+import { AccountCircle, School, WorkOutline, Star, Edit, Visibility } from '@mui/icons-material';
+import { Box, CircularProgress, Typography, Avatar, Button, IconButton } from '@mui/material';
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -23,6 +22,7 @@ const StudentDashboard = () => {
   const [studentData, setStudentData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedMenu, setSelectedMenu] = useState('Profile');
+  const [editMode, setEditMode] = useState(false);
 
   const handleSignOut = async () => {
     await signOut(auth);
@@ -78,30 +78,60 @@ const StudentDashboard = () => {
     switch (selectedMenu) {
       case 'Profile':
         return (
-          <Paper elevation={2} sx={{ borderRadius: 2, p: 3, backgroundColor: '#fff', boxShadow: '0px 4px 16px rgba(0,0,0,0.05)' }}>
-            <ProfileHeader
-              coverLink={studentData.coverLink}
-              photoLink={studentData.photoLink}
-              professorName={studentData.name}
-              onEditCover={() => {}}
-              onEditPhoto={() => {}}
-              onViewCover={() => {}}
-              onViewPhoto={() => {}}
-            />
-            <Box sx={{ mt: 2 }}>
-              <EditableField label="Name" value={studentData.name} onSave={(v) => handleProfileUpdate({ name: v })} />
-              <EditableField label="Major" value={studentData.major} onSave={(v) => handleProfileUpdate({ major: v })} />
-              <EditableField label="Year" value={studentData.year} onSave={(v) => handleProfileUpdate({ year: v })} />
-              <EditableTextArea label="Description / Bio" value={studentData.description || ''} onSave={(v) => handleProfileUpdate({ description: v })} />
-              <FileUploadField
-                label="Resume / CV"
-                filePath={studentData.resumePath}
-                fileUrl={studentData.resumeLink}
-                onSave={(url, path) => handleProfileUpdate({ resumeLink: url, resumePath: path })}
-                onDelete={() => handleProfileUpdate({ resumeLink: '', resumePath: '' })}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 5, flexWrap: 'wrap', px: 2 }}>
+            <Box sx={{ flex: 1, minWidth: '300px' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                  Hi, I am {studentData.name || 'Student'}
+                </Typography>
+                <Box>
+                  {studentData.resumeLink && !editMode && (
+                    <Button
+                      variant="outlined"
+                      startIcon={<Visibility />}
+                      href={studentData.resumeLink}
+                      target="_blank"
+                      sx={{ mt: 0, textTransform: 'none', fontWeight: 600 }}
+                    >
+                      View Resume
+                    </Button>
+                  )}
+                  <IconButton onClick={() => setEditMode(!editMode)}>
+                    <Edit />
+                  </IconButton>
+                </Box>
+              </Box>
+              <Typography variant="h5" sx={{ fontWeight: 500, mt: 1 }}>
+                {studentData.major || 'Your Department'} {studentData.year ? `(${studentData.year})` : ''}
+              </Typography>
+              <Typography variant="body1" sx={{ mt: 2, maxWidth: '600px', lineHeight: 1.6 }}>
+                {studentData.description || 'Write a short description about yourself.'}
+              </Typography>
+              {editMode && (
+                <Box sx={{ mt: 3 }}>
+                  <EditableField label="Name" value={studentData.name} onSave={(v) => handleProfileUpdate({ name: v })} />
+                  <EditableField label="Major" value={studentData.major} onSave={(v) => handleProfileUpdate({ major: v })} />
+                  <EditableField label="Year" value={studentData.year} onSave={(v) => handleProfileUpdate({ year: v })} />
+                  <EditableTextArea label="Description / Bio" value={studentData.description || ''} onSave={(v) => handleProfileUpdate({ description: v })} />
+                  <FileUploadField
+                    label="Resume / CV"
+                    filePath={studentData.resumePath}
+                    fileUrl={studentData.resumeLink}
+                    onSave={(url, path) => handleProfileUpdate({ resumeLink: url, resumePath: path })}
+                    onDelete={() => handleProfileUpdate({ resumeLink: '', resumePath: '' })}
+                  />
+                </Box>
+              )}
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+              <Avatar
+                src={studentData.photoLink || ''}
+                alt={studentData.name || 'User'}
+                sx={{ width: 200, height: 200, border: '4px solid #fff', boxShadow: 3 }}
               />
             </Box>
-          </Paper>
+          </Box>
         );
       case 'Research & Interests':
         return <StudentExperienceResearch />;
@@ -121,11 +151,7 @@ const StudentDashboard = () => {
       onMenuSelect={setSelectedMenu}
       menuItems={menuItems}
     >
-      <Box sx={{ display: 'flex', justifyContent: 'flex-start', p: 0, mt: 0, width: '100%' }}>
-        <Box sx={{ flexGrow: 1, maxWidth: '960px' }}>
-          {renderContent()}
-        </Box>
-      </Box>
+      {renderContent()}
     </DashboardLayout>
   );
 };
