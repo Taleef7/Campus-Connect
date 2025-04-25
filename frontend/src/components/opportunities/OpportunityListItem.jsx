@@ -24,7 +24,6 @@ const OpportunityListItem = ({
   return (
     <Paper elevation={2} sx={{ p: 2, mb: 2, borderRadius: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        {/* Opportunity Info */}
         <Box sx={{ mb: 1 }}>
           <Typography variant="h6">{opportunity.title}</Typography>
           <Chip label={opportunity.type || 'General'} size="small" sx={{ mr: 1, mb: 1 }} />
@@ -33,10 +32,9 @@ const OpportunityListItem = ({
           )}
         </Box>
 
-        {/* Action Buttons (Visible for professors only) */}
         {isProfessorView && (
           <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-            {opportunity.allowInterest && (
+            {opportunity.allowInterest && onViewInterested && (
               <Button
                 size="small"
                 startIcon={<GroupIcon />}
@@ -47,12 +45,12 @@ const OpportunityListItem = ({
               </Button>
             )}
             {onEdit && (
-              <IconButton size="small" onClick={() => onEdit(opportunity)}>
+              <IconButton size="small" onClick={() => onEdit(opportunity)} aria-label="edit">
                 <EditIcon fontSize="small" />
               </IconButton>
             )}
             {onDelete && (
-              <IconButton size="small" onClick={() => onDelete(opportunity.id)}>
+              <IconButton size="small" onClick={() => onDelete(opportunity.id)} aria-label="delete">
                 <DeleteIcon fontSize="small" color="error" />
               </IconButton>
             )}

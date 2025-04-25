@@ -1,12 +1,13 @@
+
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Typography, Paper, Button, Avatar, CircularProgress,
+  Box, Typography, Paper, Button, CircularProgress,
   Snackbar, Alert, Slide, Card, CardContent, CardActionArea, CardMedia
 } from '@mui/material';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import {
-  doc, onSnapshot, collection, getDocs, updateDoc, setDoc
+  doc, onSnapshot, collection, getDocs, updateDoc, setDoc, deleteDoc, query, where
 } from 'firebase/firestore';
 
 import DashboardLayout from '../components/dashboard/DashboardLayout';
@@ -15,6 +16,12 @@ import ProfessorExperienceResearch from './ResearchAndInterests';
 import OpportunityListItem from '../components/opportunities/OpportunityListItem';
 import AddOpportunityForm from '../components/opportunities/AddOpportunityForm';
 import InterestedStudentsDialog from '../components/opportunities/InterestedStudentsDialog';
+import ProfileHeader from '../components/profile/ProfileHeader';
+import ProfileInfoSection from '../components/profile/ProfileInfoSection';
+
+import expImg from '../assets/exp.jpeg';
+import coursesImg from '../assets/courses.jpeg';
+import oppImg from '../assets/opp.jpeg';
 
 const ProfessorDashboard = () => {
   const [user, setUser] = useState(null);
@@ -48,26 +55,39 @@ const ProfessorDashboard = () => {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
-    const fetchOpportunities = async () => {
-      const snapshot = await getDocs(collection(db, 'opportunities'));
-      const list = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(opp => opp.professorId === user.uid);
-      setOpportunities(list);
-    };
-    fetchOpportunities();
+    if (user) fetchOpportunities(user.uid);
   }, [user]);
+
+  const fetchOpportunities = async (professorId) => {
+    try {
+      const q = query(collection(db, 'opportunities'), where('professorId', '==', professorId));
+      const snapshot = await getDocs(q);
+      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setOpportunities(list);
+    } catch (err) {
+      console.error('Error fetching opportunities:', err);
+    }
+  };
 
   const handleSaveOpportunity = async (data) => {
     try {
       if (data.id) {
         const ref = doc(db, 'opportunities', data.id);
-        await updateDoc(ref, data);
+        await updateDoc(ref, {
+          ...data,
+          professorId: user.uid
+        });
       } else {
         const newRef = doc(collection(db, 'opportunities'));
-        await setDoc(newRef, { ...data, id: newRef.id });
+        await setDoc(newRef, {
+          ...data,
+          id: newRef.id,
+          professorId: user.uid,
+          createdAt: new Date()
+        });
       }
+
+      await fetchOpportunities(user.uid);
       setShowForm(false);
       setEditingOpportunity(null);
       setSnackbarOpen(true);
@@ -79,6 +99,18 @@ const ProfessorDashboard = () => {
   const handleEditOpportunity = (opportunity) => {
     setEditingOpportunity(opportunity);
     setShowForm(true);
+  };
+
+  const handleDeleteOpportunity = async (id) => {
+    const confirm = window.confirm('Are you sure you want to delete this opportunity?');
+    if (!confirm) return;
+
+    try {
+      await deleteDoc(doc(db, 'opportunities', id));
+      await fetchOpportunities(user.uid);
+    } catch (err) {
+      console.error('Failed to delete opportunity:', err);
+    }
   };
 
   const handleViewInterested = (opportunityId) => {
@@ -100,21 +132,8 @@ const ProfessorDashboard = () => {
         {/* Sidebar */}
         <Box sx={{ width: 320, backgroundColor: '#f3f3f3', p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box width="100%">
-            <Paper elevation={3} sx={{ width: '100%', p: 3, mb: 3, borderRadius: 4, textAlign: 'center', backgroundColor: '#fff' }}>
-              <Avatar src={professorData?.photoLink} sx={{ width: 100, height: 100, mx: 'auto', mb: 1 }} />
-              <Typography variant="h6" fontWeight="bold">{professorData?.name}</Typography>
-              <Typography variant="body2" color="text.secondary">Professor</Typography>
-            </Paper>
-            <Paper elevation={3} sx={{ width: '100%', p: 3, borderRadius: 4, backgroundColor: '#fff' }}>
-              <Typography variant="subtitle2" color="text.secondary">Title</Typography>
-              <Typography>{professorData?.headline || '—'}</Typography>
-              <Typography variant="subtitle2" color="text.secondary" mt={2}>Pronouns</Typography>
-              <Typography>{professorData?.pronouns || '—'}</Typography>
-              <Typography variant="subtitle2" color="text.secondary" mt={2}>Department</Typography>
-              <Typography>{professorData?.department || '—'}</Typography>
-              <Typography variant="subtitle2" color="text.secondary" mt={2}>About</Typography>
-              <Typography sx={{ whiteSpace: 'pre-wrap' }}>{professorData?.about || '—'}</Typography>
-            </Paper>
+            <ProfileHeader professorData={professorData} user={user} />
+            <ProfileInfoSection professorData={professorData} user={user} />
           </Box>
           <Button
             variant="outlined"
@@ -131,49 +150,14 @@ const ProfessorDashboard = () => {
         <Box sx={{ flexGrow: 1, p: 4, backgroundColor: '#f9f9f9' }}>
           {tabValue === null ? (
             <>
-              {/* Hero Image */}
-              <Paper
-                elevation={3}
-                sx={{
-                  height: 240,
-                  mb: 3,
-                  borderRadius: 4,
-                  backgroundImage: `url(${professorData.coverLink})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                {!professorData.coverLink && (
-                  <Typography variant="h5" color="white" sx={{ backdropFilter: 'blur(4px)', px: 2 }}>
-                    Welcome, {professorData.name || 'Professor'}
-                  </Typography>
-                )}
-              </Paper>
-
-              {/* Navigation Cards */}
+              <Box sx={{ height: 240, mb: 3, borderRadius: 4, backgroundImage: `url(${professorData.coverLink})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
               <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3, mb: 4, flexWrap: 'wrap' }}>
-                {tabTitles.map((title, index) => (
+                {[expImg, coursesImg, oppImg].map((img, index) => (
                   <Card key={index} sx={{ width: 240, borderRadius: 3 }}>
                     <CardActionArea onClick={() => setTabValue(index)}>
-                      <CardMedia
-                        component="img"
-                        height="140"
-                        image={
-                          index === 0
-                            ? 'https://cdn-icons-png.flaticon.com/512/3382/3382703.png'
-                            : index === 1
-                            ? 'https://cdn-icons-png.flaticon.com/512/1159/1159633.png'
-                            : 'https://cdn-icons-png.flaticon.com/512/3595/3595455.png'
-                        }
-                        alt={title}
-                      />
+                      <CardMedia component="img" height="140" image={img} alt={tabTitles[index]} />
                       <CardContent>
-                        <Typography gutterBottom variant="h6" component="div">
-                          {title}
-                        </Typography>
+                        <Typography gutterBottom variant="h6">{tabTitles[index]}</Typography>
                       </CardContent>
                     </CardActionArea>
                   </Card>
@@ -183,6 +167,9 @@ const ProfessorDashboard = () => {
           ) : (
             <Slide direction="up" in={tabValue !== null} mountOnEnter unmountOnExit>
               <Box>
+                <Typography variant="h5" fontWeight="bold" mb={2}>
+                  {tabTitles[tabValue]}
+                </Typography>
                 <Button onClick={() => setTabValue(null)} sx={{ mb: 2 }}>← Back</Button>
                 {tabValue === 0 && <ProfessorExperienceResearch professorData={professorData} />}
                 {tabValue === 1 && <ProfessorCourses />}
@@ -193,19 +180,16 @@ const ProfessorDashboard = () => {
                         + Post New Opportunity
                       </Button>
                     </Box>
-                    {opportunities.length === 0 ? (
-                      <Typography>You haven't posted any opportunities yet.</Typography>
-                    ) : (
-                      opportunities.map(opp => (
-                        <OpportunityListItem
-                          key={opp.id}
-                          opportunity={opp}
-                          onEdit={handleEditOpportunity}
-                          onViewInterested={handleViewInterested}
-                          viewMode="professor"
-                        />
-                      ))
-                    )}
+                    {opportunities.map((opp) => (
+                      <OpportunityListItem
+                        key={opp.id}
+                        opportunity={opp}
+                        onEdit={handleEditOpportunity}
+                        onDelete={handleDeleteOpportunity}
+                        onViewInterested={handleViewInterested}
+                        viewMode="professor"
+                      />
+                    ))}
                   </>
                 )}
               </Box>
@@ -214,18 +198,15 @@ const ProfessorDashboard = () => {
         </Box>
       </Box>
 
-      {/* Form Dialog */}
-      {showForm && (
-        <AddOpportunityForm
-          open={showForm}
-          onClose={() => { setShowForm(false); setEditingOpportunity(null); }}
-          onSave={handleSaveOpportunity}
-          professorId={user?.uid}
-          initialData={editingOpportunity}
-        />
-      )}
+      {/* Dialogs */}
+      <AddOpportunityForm
+        open={showForm}
+        onClose={() => { setShowForm(false); setEditingOpportunity(null); }}
+        onSave={handleSaveOpportunity}
+        professorId={user?.uid}
+        initialData={editingOpportunity}
+      />
 
-      {/* View Interested Dialog */}
       <InterestedStudentsDialog
         open={Boolean(selectedOpportunityId)}
         onClose={handleCloseInterested}
