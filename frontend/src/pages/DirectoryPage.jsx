@@ -2,7 +2,7 @@
 // frontend/src/pages/DirectoryPage.jsx
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Typography, CircularProgress, Container, Grid, Paper, Button } from '@mui/material'; // Use Grid v2 (no import needed)
+import { Box, Typography, CircularProgress, Container, Grid2, Paper, Button } from '@mui/material'; // Use Grid v2 (no import needed)
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { signOut } from 'firebase/auth';
@@ -142,9 +142,9 @@ const DirectoryPage = () => {
   return (
     // Pass the determined dashboardPath and handleSignOut to the layout
     <DashboardLayout handleSignOut={handleSignOut} dashboardPath={dashboardPath}>
-       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+       <Container maxWidth="lg" sx={{ mt: 3, mb: 3 }}>
             <Typography variant="h4" gutterBottom component="h1"> User Directory & Search </Typography>
-           <Paper elevation={1} sx={{ mb: 3, p: 2, borderRadius: 2 }}>
+           <Paper elevation={1} sx={{ mb: 2, p: 3, borderRadius: 3 }}>
                <SearchBar searchTerm={searchTerm} onSearchChange={handleSearchChange} />
                <FilterControls
                   selectedRole={selectedRole} selectedDepartment={selectedDepartment}
@@ -156,25 +156,25 @@ const DirectoryPage = () => {
            </Paper>
            <Box>
              {error ? ( <Typography color="error" sx={{ textAlign: 'center', mt: 5 }}>{error}</Typography> ) : (
-               <Grid container spacing={3}> {/* Use Grid container */}
+               <Grid2 container spacing={3} alignItems="stretch">
                  {filteredUsers.length > 0 ? (
                     filteredUsers.map(user => (
                        // --- Corrected Grid v2 Item Usage ---
-                       <Grid key={user.id} size={{ xs: 12, sm: 6, md: 4 }}> {/* Use size prop */}
+                       <Grid2 key={user.id} size={{ xs: 12, sm: 6, md: 4 }}> {/* Use size prop */}
                            <UserCard user={user} />
-                        </Grid>
+                        </Grid2>
                     ))
                  ) : (
                      // --- Corrected Grid v2 Item Usage ---
-                    <Grid size={12}> {/* Use size prop */}
+                    <Grid2 size={12}> {/* Use size prop */}
                         <Typography sx={{ textAlign: 'center', mt: 5, color: 'text.secondary' }}>
                              {searchTerm || selectedRole || selectedDepartment || selectedMajor || selectedYear
                               ? `No users found matching the current criteria.`
                               : "No users found."}
                          </Typography>
-                     </Grid>
+                     </Grid2>
                  )}
-               </Grid>
+               </Grid2>
              )}
            </Box>
        </Container>

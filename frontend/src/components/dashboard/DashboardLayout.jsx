@@ -2,62 +2,95 @@
 /* eslint-disable no-unused-vars */
 // frontend/src/components/dashboard/DashboardLayout.jsx
 import React from 'react';
-import { Box, Typography, Button, AppBar, Toolbar, Container } from '@mui/material'; // Added AppBar, Toolbar, Container
-import { Link as RouterLink } from 'react-router-dom'; // Import Link for navigation
+import { Box, Typography, Button, AppBar, Toolbar } from '@mui/material'; // Removed Container
+import { Link as RouterLink, useLocation } from 'react-router-dom';
 
 const DashboardLayout = ({ title, handleSignOut, children, dashboardPath }) => {
+    const location = useLocation();
+    console.log("Current location:", location.pathname);
 
-  // --- Add this console log ---
-  console.log("DashboardLayout received dashboardPath prop:", dashboardPath);
-  // --- End console log ---
+    const navLinkHoverSx = {
+        borderRadius: 1, // Use theme's border radius potentially theme.shape.borderRadius
+        '&:hover': {
+            backgroundColor: 'action.hover', // Use theme action color for hover
+            // Consider a slightly darker background on hover for white appbar:
+            // backgroundColor: 'rgba(0, 0, 0, 0.04)'
+        },
+    };
 
-  return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f3f2ef' }}>
-      {/* Use AppBar for a more standard header */}
-      <AppBar position="static" sx={{ backgroundColor: '#fff', color: 'text.primary', boxShadow: 1 }}>
-        <Toolbar>
-           {/* Campus Connect Title */}
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
-            Campus-Connect
-          </Typography>
-
-          {/* Dashboard Link (conditionally rendered) */}
-          {dashboardPath && ( // This condition relies on dashboardPath being truthy
-            <Button component={RouterLink} to={dashboardPath} color="primary" sx={{ mr: 2 }}>
-                Dashboard
-            </Button>
-          )}
-
-          {/* Navigation Links/Buttons */}
-          <Button
-            component={RouterLink} // Use react-router Link
-            to="/directory"       // Link to the directory page
-            color="primary"       // Inherit color from AppBar's theme context
-            sx={{ mr: 2 }}        // Add some margin to the right
-           >
-             Directory
-           </Button>
-
-          {/* Sign Out Button */}
-          {handleSignOut && (
-             <Button
-              variant="contained"
-              onClick={handleSignOut}
-              size="small" // Make button slightly smaller
+    return (
+        // Use theme background color. CssBaseline applies this to body.
+        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
+            <AppBar
+                position="sticky"
+                // Use theme colors: paper background, primary text. Elevation from theme defaults.
+                 sx={{ bgcolor: 'background.paper', color: 'text.primary' }}
+                 // Or directly use primary color if you want a gold AppBar:
+                 // color="primary" // This makes AppBar gold, text should contrast automatically
             >
-              Sign Out
-            </Button>
-          )}
-        </Toolbar>
-      </AppBar>
+                <Toolbar>
+                    {/* Title Link - Inherits color */}
+                    <Typography
+                        variant="h6"
+                        component={RouterLink}
+                        to={dashboardPath || '/'}
+                        sx={{
+                            flexGrow: 1,
+                            fontWeight: 'bold',
+                            color: 'inherit', // Inherit color from AppBar
+                            textDecoration: 'none',
+                            '&:hover': { opacity: 0.9 }
+                        }}
+                    >
+                        Campus-Connect
+                    </Typography>
 
-      {/* Main Content Area - Use Container for consistency */}
-      <Container component="main" maxWidth="lg" sx={{ mt: 4, mb: 4, flexGrow: 1 }}>
-        {/* Content passed from the parent component */}
-        {children}
-      </Container>
-    </Box>
-  );
+                    {/* Dashboard Link - Use secondary color for contrast on paper bg */}
+                    {dashboardPath && location.pathname !== dashboardPath && (
+                        <Button
+                            component={RouterLink}
+                            to={dashboardPath}
+                            color="secondary" // Use theme secondary (dark gray)
+                            sx={{ ...navLinkHoverSx, mr: 1, fontWeight: 'medium' }} // Added font weight
+                        >
+                            Dashboard
+                        </Button>
+                    )}
+
+                    {/* Directory Link - Use secondary color */}
+                    {location.pathname !== '/directory' && (
+                        <Button
+                            variant='outlined'
+                            component={RouterLink}
+                            to="/directory"
+                            color="secondary" // Use theme secondary (dark gray)
+                            sx={{ ...navLinkHoverSx, mr: 1, fontWeight: 'medium' }} // Added font weight
+                        >
+                            Directory
+                        </Button>
+                    )}
+
+                    {/* Sign Out Button - Use secondary color */}
+                    {handleSignOut && (
+                        <Button
+                            variant="contained" // Make it stand out more
+                            onClick={handleSignOut}
+                            size="small"
+                            color="primary" // Use theme secondary (dark gray) for outline/text
+                            sx={{ ml: 2 }}
+                        >
+                            Sign Out
+                        </Button>
+                    )}
+                </Toolbar>
+            </AppBar>
+
+            {/* Main Content Area - Container should be added within child pages */}
+            <Box component="main" sx={{ flexGrow: 1, py: { xs: 2, sm: 3, md: 4 } }}>
+                {children}
+            </Box>
+        </Box>
+    );
 };
 
 export default DashboardLayout;

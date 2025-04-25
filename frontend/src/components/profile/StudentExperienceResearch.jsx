@@ -1,8 +1,8 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
 // src/components/profile/StudentExperienceResearch.jsx
-import { useState, useEffect } from 'react';
-import { Box, Typography, TextField, Button, Chip, Stack, IconButton, CircularProgress, Alert, Paper, Divider, Link as MuiLink } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, TextField, Button, Chip, Stack, IconButton, CircularProgress, Alert as MuiAlert, Paper, Divider, Link as MuiLink, Snackbar } from '@mui/material';
 import { doc, updateDoc, arrayUnion, arrayRemove, collection, query, onSnapshot, orderBy, addDoc, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase'; // Adjust path if needed
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
@@ -10,8 +10,8 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import EditIcon from '@mui/icons-material/Edit';     // For Edit button
 import DeleteIcon from '@mui/icons-material/Delete'; // For Delete button
 import AddIcon from '@mui/icons-material/Add';       // For Add Experience button
-
 import ExperienceForm from './ExperienceForm'; // Assuming it's in the same directory
+
 // --- Define the tag limit ---
 const TAG_LIMIT = 15;
 
@@ -30,6 +30,12 @@ const formatExperienceDate = (timestamp) => {
 };
 // --- End Date Helper ---
 
+// --- Snackbar Alert ForwardRef ---
+const Alert = React.forwardRef(function Alert(props, ref) {
+  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
+});
+// --- End Snackbar Alert ---
+
 
 const StudentExperienceResearch = ({ studentData }) => {
   // State for Tags
@@ -47,8 +53,15 @@ const StudentExperienceResearch = ({ studentData }) => {
   const [isExperienceModalOpen, setIsExperienceModalOpen] = useState(false);
   const [editingExperienceData, setEditingExperienceData] = useState(null); // null for add, object for edit
   const [isSavingExperience, setIsSavingExperience] = useState(false); // Loading state for save/update/delete
-  const [crudError, setCrudError] = useState(null); // Error during save/update/delete
+  // const [crudError, setCrudError] = useState(null); // Error during save/update/delete
 
+  // --- Snackbar State ---
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState('info');
+
+  // Use authenticated user's ID
+  const userId = auth.currentUser?.uid; // Define userId here
 
   // Update local state if the prop changes (e.g., parent re-fetches)
   useEffect(() => {
@@ -59,13 +72,12 @@ const StudentExperienceResearch = ({ studentData }) => {
   // --- Effect for fetching STRUCTURED experiences ---
   useEffect(() => {
     let unsubscribe = () => {};
-    const currentUser = auth.currentUser;
+    // const currentUser = auth.currentUser; // Use userId defined above
 
-    if (currentUser?.uid) {
+    if (userId) { // Use userId
       setLoadingExperiences(true);
       setExperienceError(null);
-      const experiencesCollectionRef = collection(db, 'users', currentUser.uid, 'experiences');
-      // Order by start date descending? Or type then start date?
+      const experiencesCollectionRef = collection(db, 'users', userId, 'experiences'); // Use userId
       const q = query(experiencesCollectionRef, orderBy('startDate', 'desc'));
 
       unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -82,21 +94,36 @@ const StudentExperienceResearch = ({ studentData }) => {
       });
 
     } else {
-      // No user logged in
       setExperiences([]);
       setLoadingExperiences(false);
+      // Consider setting an error if user should be logged in
+      // setExperienceError("Please log in to manage experiences.");
     }
-
     // Cleanup listener
     return () => unsubscribe();
-  }, []); // Fetch only once on mount (or when user changes if uid was dependency)
+  }, [userId]); // Depend on userId
 
 
-  // --- Tag Handlers ---
+  // --- Snackbar Handler (NEW) ---
+  const handleSnackbarClose = (event, reason) => {
+    if (reason === 'clickaway') {
+        return;
+    }
+    setSnackbarOpen(false);
+  };
+
+  const showSnackbar = (message, severity = 'info') => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
+  };
+  // --- End Snackbar Handler ---
+
+
+  // --- Tag Handlers (MODIFIED for Snackbar) ---
   const handleAddTag = async () => {
     const tagToAdd = newTag.trim();
-    setTagError('');
-
+    setTagError(''); // Keep inline tag error
     if (!tagToAdd) { setTagError('Tag cannot be empty.'); return; }
     if (displayTags.some(tag => tag.toLowerCase() === tagToAdd.toLowerCase())) {
       setTagError(`Tag "${tagToAdd}" already exists.`); setNewTag(''); return;
@@ -104,15 +131,20 @@ const StudentExperienceResearch = ({ studentData }) => {
     if (displayTags.length >= TAG_LIMIT) {
       setTagError(`You have reached the maximum limit of ${TAG_LIMIT} tags.`); setNewTag(''); return;
     }
-    if (!auth.currentUser?.uid) { setTagError("Not authenticated."); return; }
+    // Use userId defined earlier
+    if (!userId) { showSnackbar("Not authenticated.", "error"); return; }
 
     setIsProcessingTag(true);
-    const userDocRef = doc(db, 'users', auth.currentUser.uid);
+    const userDocRef = doc(db, 'users', userId); // Use userId
     try {
       await updateDoc(userDocRef, { experienceTags: arrayUnion(tagToAdd) });
-      setNewTag(''); // Clear input field on success
+      setNewTag('');
+      // Optionally show success snackbar
+      showSnackbar(`Tag "${tagToAdd}" added!`, 'success');
     } catch (err) {
-      console.error("Error adding tag:", err); setTagError("Failed to add tag. Please try again.");
+      console.error("Error adding tag:", err);
+      // Use snackbar for error feedback
+      showSnackbar("Failed to add tag. Please try again.", "error");
     } finally {
       setIsProcessingTag(false);
     }
@@ -120,16 +152,20 @@ const StudentExperienceResearch = ({ studentData }) => {
 
 
   const handleRemoveTag = async (tagToRemove) => {
-    if (!auth.currentUser?.uid) { setTagError("Not authenticated."); return; }
-    if (isProcessingTag) return; // Prevent multiple removals
+    // Use userId defined earlier
+    if (!userId) { showSnackbar("Not authenticated.", "error"); return; }
+    if (isProcessingTag) return;
 
-    setIsProcessingTag(true); setTagError('');
-    const userDocRef = doc(db, 'users', auth.currentUser.uid);
+    setIsProcessingTag(true); setTagError(''); // Clear inline error on attempt
+    const userDocRef = doc(db, 'users', userId); // Use userId
     try {
       await updateDoc(userDocRef, { experienceTags: arrayRemove(tagToRemove) });
-      // UI updates via onSnapshot from parent or tag state update
+      // Optionally show success snackbar
+      showSnackbar(`Tag "${tagToRemove}" removed.`, 'success');
     } catch (err) {
-      console.error("Error removing tag:", err); setTagError("Failed to remove tag. Please try again.");
+      console.error("Error removing tag:", err);
+      // Use snackbar for error feedback
+      showSnackbar("Failed to remove tag. Please try again.", "error");
     } finally {
       setIsProcessingTag(false);
     }
@@ -139,86 +175,80 @@ const StudentExperienceResearch = ({ studentData }) => {
   // --- Experience Modal Handlers ---
   const handleOpenAddExperienceModal = () => {
     setEditingExperienceData(null); // Clear any previous edit data
-    setCrudError(null); // Clear previous errors
+    // setCrudError(null); // Clear previous errors
     setIsExperienceModalOpen(true);
   };
 
   const handleOpenEditExperienceModal = (experienceData) => {
     setEditingExperienceData(experienceData); // Set data for editing
-    setCrudError(null); // Clear previous errors
+    // setCrudError(null); // Clear previous errors
     setIsExperienceModalOpen(true);
   };
 
   const handleCloseExperienceModal = () => {
     setIsExperienceModalOpen(false);
     // Optionally clear editing data after close animation:
-    // setTimeout(() => setEditingExperienceData(null), 300);
+    setTimeout(() => setEditingExperienceData(null), 300);
   };
 
-  // --- Experience CRUD Handlers ---
+
+  // --- Experience CRUD Handlers (MODIFIED for Snackbar) ---
   const handleSaveExperience = async (formData, experienceId) => {
-      const currentUser = auth.currentUser;
-      if (!currentUser?.uid) {
-          setCrudError("Authentication error. Cannot save.");
-          throw new Error("User not authenticated."); // Throw error to be caught by form
-      }
+    // const currentUser = auth.currentUser; // Use userId defined earlier
+    if (!userId) { // Use userId
+        showSnackbar("Authentication error. Cannot save.", "error");
+        throw new Error("User not authenticated.");
+    }
 
-      setIsSavingExperience(true);
-      setCrudError(null);
-      const userId = currentUser.uid;
+    setIsSavingExperience(true);
+    // setCrudError(null); // Remove if not using crudError state
 
-      try {
-          if (experienceId) {
-              // --- Update Existing Experience ---
-              const experienceDocRef = doc(db, 'users', userId, 'experiences', experienceId);
-              await updateDoc(experienceDocRef, formData);
-              console.log("Experience updated successfully:", experienceId);
-          } else {
-              // --- Add New Experience ---
-              const experiencesCollectionRef = collection(db, 'users', userId, 'experiences');
-              await addDoc(experiencesCollectionRef, formData);
-              console.log("Experience added successfully");
-          }
-          handleCloseExperienceModal(); // Close modal on success
-      } catch (err) {
-          console.error("Error saving experience:", err);
-          setCrudError(`Failed to save experience: ${err.message}. Please try again.`);
-          // Re-throw the error so the form's catch block can also see it if needed
-          throw err;
-      } finally {
-          setIsSavingExperience(false);
-      }
+    try {
+        let message = '';
+        if (experienceId) { // Update
+            const experienceDocRef = doc(db, 'users', userId, 'experiences', experienceId);
+            await updateDoc(experienceDocRef, formData);
+            message = 'Experience updated successfully!';
+        } else { // Add
+            const experiencesCollectionRef = collection(db, 'users', userId, 'experiences');
+            await addDoc(experiencesCollectionRef, formData);
+            message = 'Experience added successfully!';
+        }
+        handleCloseExperienceModal();
+        showSnackbar(message, 'success'); // Show success message
+    } catch (err) {
+        console.error("Error saving experience:", err);
+        showSnackbar(`Failed to save experience: ${err.message}`, 'error'); // Show error message
+        throw err; // Re-throw so ExperienceForm can also catch it
+    } finally {
+        setIsSavingExperience(false);
+    }
   };
 
 
   const handleDeleteExperience = async (experienceId) => {
-    const currentUser = auth.currentUser;
-    if (!currentUser?.uid) {
-        setCrudError("Authentication error. Cannot delete.");
-        alert("Authentication error. Cannot delete."); // Simple feedback
+    // const currentUser = auth.currentUser; // Use userId defined earlier
+    if (!userId) { // Use userId
+        showSnackbar("Authentication error. Cannot delete.", "error");
         return;
     }
-    if (isSavingExperience) return; // Prevent delete while another operation is running
+    if (isSavingExperience) return;
 
-    // Confirmation Dialog
     if (!window.confirm("Are you sure you want to delete this experience entry? This action cannot be undone.")) {
-        return; // User cancelled
+        return;
     }
 
     setIsSavingExperience(true);
-    setCrudError(null);
-    const userId = currentUser.uid;
+    // setCrudError(null); // Remove if not using crudError state
 
     try {
         const experienceDocRef = doc(db, 'users', userId, 'experiences', experienceId);
         await deleteDoc(experienceDocRef);
         console.log("Experience deleted successfully:", experienceId);
-        // UI will update via onSnapshot listener
-        alert("Experience deleted successfully."); // Simple feedback
+        showSnackbar("Experience deleted successfully.", 'success'); // Show success message
     } catch (err) {
         console.error("Error deleting experience:", err);
-        setCrudError(`Failed to delete experience: ${err.message}. Please try again.`);
-        alert(`Failed to delete experience: ${err.message}`); // Simple feedback
+        showSnackbar(`Failed to delete experience: ${err.message}`, 'error'); // Show error message
     } finally {
         setIsSavingExperience(false);
     }
@@ -239,66 +269,33 @@ const StudentExperienceResearch = ({ studentData }) => {
   const limitReached = displayTags.length >= TAG_LIMIT;
 
   return (
-    <Box>
+    <Box sx={{p:3}}>
       {/* --- Tags Section --- */}
-      <Typography variant="h5" gutterBottom>
-        My Experience & Research Interests
-      </Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-        Add relevant keywords, skills, or research (e.g., &apos;React&apos;, &apos;Machine Learning&apos;). Max {TAG_LIMIT}.
-      </Typography>
-      <Box component="form" onSubmit={(e) => { e.preventDefault(); handleAddTag(); }} sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 3 }}>
-        <TextField
-          label={limitReached ? `Tag limit (${TAG_LIMIT}) reached` : "Add New Tag"}
-          variant="outlined" size="small" value={newTag}
-          onChange={(e) => setNewTag(e.target.value)}
-          disabled={isProcessingTag || limitReached}
-          sx={{ flexGrow: 1 }}
-        />
-        <Button
-          type="submit" variant="contained"
-          startIcon={isProcessingTag ? <CircularProgress size={20} color="inherit" /> : <AddCircleOutlineIcon />}
-          disabled={isProcessingTag || !newTag.trim() || limitReached}
-        > Add </Button>
-      </Box>
-      {tagError && <Alert severity="warning" sx={{ mb: 2 }}>{tagError}</Alert>}
-      <Typography variant="h6" gutterBottom sx={{ fontWeight: 'medium' }}>
-          Current Tags ({displayTags.length}/{TAG_LIMIT}):
-      </Typography>
-      {displayTags.length > 0 ? (
-        <Stack direction="row" flexWrap="wrap" spacing={1} useFlexGap>
-          {displayTags.map((tag) => (
-            <Chip
-              key={tag} label={tag}
-              onDelete={isProcessingTag ? undefined : () => handleRemoveTag(tag)}
-              deleteIcon={<CancelIcon />}
-              disabled={isProcessingTag}
-            />
-          ))}
-        </Stack>
-      ) : ( <Typography variant="body2" color="text.secondary"> No tags added yet. </Typography> )}
+      {/* --- Tags Section (Keep as is, uses tagError state for inline feedback) --- */}
+      <Typography variant="h5" gutterBottom> My Experience & Research Interests </Typography>
+       <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}> Add relevant keywords, skills, or research. Max {TAG_LIMIT}. </Typography>
+       <Box component="form" onSubmit={(e) => { e.preventDefault(); handleAddTag(); }} sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 3 }}>
+             <TextField label={limitReached ? `Tag limit (${TAG_LIMIT}) reached` : "Add New Tag"} variant="outlined" size="small" value={newTag} onChange={(e) => setNewTag(e.target.value)} disabled={isProcessingTag || limitReached} sx={{ flexGrow: 1 }} />
+             <Button type="submit" variant="contained" startIcon={isProcessingTag ? <CircularProgress size={20} color="inherit" /> : <AddCircleOutlineIcon />} disabled={isProcessingTag || !newTag.trim() || limitReached}> Add </Button>
+       </Box>
+       {tagError && <MuiAlert severity="warning" sx={{ mb: 2 }}>{tagError}</MuiAlert>} {/* Keep inline tag error */}
+       <Typography variant="h6" gutterBottom sx={{ fontWeight: 'medium' }}> Tags ({displayTags.length}/{TAG_LIMIT}): </Typography>
+       {displayTags.length > 0 ? ( <Stack direction="row" flexWrap="wrap" spacing={1} useFlexGap> {displayTags.map((tag) => ( <Chip key={tag} label={tag} onDelete={isProcessingTag ? undefined : () => handleRemoveTag(tag)} deleteIcon={<CancelIcon />} disabled={isProcessingTag} /> ))} </Stack> ) : ( <Typography variant="body2" color="text.secondary"> No tags added yet. </Typography> )}
 
       <Divider sx={{ my: 4 }} />
 
       {/* --- Structured Experience Section --- */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" gutterBottom component="div">Detailed Experience</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAddExperienceModal} size="small" disabled={isSavingExperience}>
-          Add Experience
-        </Button>
+        <Typography variant="h5" gutterBottom component="div">Experiences</Typography>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAddExperienceModal} size="small" disabled={isSavingExperience}> Add Experience </Button>
       </Box>
 
-      {/* Display CRUD errors here */}
-       {crudError && <Alert severity="error" sx={{ mb: 2 }}>{crudError}</Alert>}
+      {/* Display fetch errors */}
+      {experienceError && !loadingExperiences && <MuiAlert severity="error" sx={{ mb: 2 }}>{experienceError}</MuiAlert>} {/* Keep fetch error */}
 
-      {/* Loading and Empty States */}
+      {/* Loading and Empty States (Keep as is) */}
       {loadingExperiences && <Box sx={{ display: 'flex', justifyContent: 'center', my: 3}}><CircularProgress size={24} /></Box>}
-      {experienceError && !loadingExperiences && <Alert severity="error">{experienceError}</Alert>}
-      {!loadingExperiences && !experienceError && experiences.length === 0 && (
-        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mt: 2 }}>
-          No detailed experiences added yet. Click &quot;Add Experience&quot; to get started.
-        </Typography>
-      )}
+       {!loadingExperiences && !experienceError && experiences.length === 0 && ( <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mt: 2 }}> No detailed experiences added yet. Click &quot;Add Experience&quot; to get started. </Typography> )}
 
       {/* Render Experience Groups */}
       {!loadingExperiences && !experienceError && experiences.length > 0 && (
@@ -353,9 +350,17 @@ const StudentExperienceResearch = ({ studentData }) => {
           onClose={handleCloseExperienceModal}
           onSave={handleSaveExperience} // This function handles Firestore add/update
           initialData={editingExperienceData}
-          userId={auth.currentUser?.uid} // Pass current user's ID
+          userId={userId} // Pass current user's ID
           isSaving={isSavingExperience} // Pass saving state to disable form controls
        />
+
+       {/* --- Snackbar Component (NEW) --- */}
+       <Snackbar open={snackbarOpen} autoHideDuration={5000} onClose={handleSnackbarClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+            <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
+                {snackbarMessage}
+            </Alert>
+       </Snackbar>
+       {/* --- End Snackbar --- */}
 
     </Box>
   );

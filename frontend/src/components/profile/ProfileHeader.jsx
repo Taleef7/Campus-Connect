@@ -8,17 +8,15 @@ import EditIcon from '@mui/icons-material/Edit';
 const ProfileHeader = ({
   coverLink,
   photoLink,
-  professorName,
-  onEditCover, // Prop to trigger opening the edit cover modal
-  onViewCover, // Prop to trigger opening the view cover modal/action
-  onEditPhoto, // Prop to trigger opening the edit photo modal
-  onViewPhoto, // Prop to trigger opening the view photo modal/action
+  professorName, // Assuming name is passed for initials fallback
+  onEditCover,
+  onViewCover,
+  onEditPhoto,
+  onViewPhoto,
 }) => {
-  // State for hover effects is now local to this component
   const [coverHover, setCoverHover] = useState(false);
   const [photoHover, setPhotoHover] = useState(false);
 
-  // Helper to get initials is now local
   const getInitials = () => {
     if (!professorName) return '?';
     const parts = professorName.split(' ');
@@ -27,61 +25,47 @@ const ProfileHeader = ({
 
   const initials = getInitials();
 
-  // Handlers for local hover state
   const handleCoverMouseEnter = () => setCoverHover(true);
   const handleCoverMouseLeave = () => setCoverHover(false);
   const handlePhotoMouseEnter = () => setPhotoHover(true);
   const handlePhotoMouseLeave = () => setPhotoHover(false);
 
-  // Click handlers now call the functions passed via props
   const handleCoverClick = () => {
-    if (coverLink) {
-      onViewCover(); // Call prop function
-    } else {
-      onEditCover(); // Open edit directly if no cover
-    }
+    if (coverLink) { onViewCover(); }
+    else { onEditCover(); }
   };
 
   const handlePhotoClick = () => {
-    if (photoLink) {
-      onViewPhoto(); // Call prop function
-    } else {
-      onEditPhoto(); // Open edit directly if no photo
-    }
+    if (photoLink) { onViewPhoto(); }
+    else { onEditPhoto(); }
   };
 
-  const handleCoverEditButtonClick = (e) => {
-      e.stopPropagation(); // Prevent triggering handleCoverClick
-      onEditCover(); // Call prop function
-  };
-
-  const handlePhotoEditButtonClick = (e) => {
-      e.stopPropagation(); // Prevent triggering handlePhotoClick
-      onEditPhoto(); // Call prop function
-  };
-
+  const handleCoverEditButtonClick = (e) => { e.stopPropagation(); onEditCover(); };
+  const handlePhotoEditButtonClick = (e) => { e.stopPropagation(); onEditPhoto(); };
 
   return (
     <Box
       sx={{
         position: 'relative',
         height: { xs: 150, sm: 200 },
-        mb: 15, // Maintain margin for avatar overlap
-        backgroundImage: coverLink
-          ? `url('${coverLink}')`
-          : "linear-gradient(to right, #64b5f6, #1976d2)", // Default gradient
-        backgroundColor: '#e0e0e0',
+        mb: { xs: 8, sm: 10 }, // Adjusted margin based on avatar size
+        // --- THEME BACKGROUND ---
+        // Use coverLink if available, otherwise use theme secondary color
+        backgroundImage: coverLink ? `url('${coverLink}')` : 'none', // Remove gradient
+        // Use theme's secondary color (Steel Gray) as default background
+        bgcolor: coverLink ? 'transparent' : 'secondary.main',
+        // --- END THEME BACKGROUND ---
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        borderRadius: 1,
+        borderRadius: 1, // Use theme's border radius? theme.shape.borderRadius
         cursor: 'pointer',
-        '&:hover .cover-hover-edit': { opacity: 1 }, // Show edit button on hover
+        '&:hover .cover-hover-edit': { opacity: 1 },
       }}
-      onClick={handleCoverClick} // Uses internal handler which calls prop
+      onClick={handleCoverClick}
       onMouseEnter={handleCoverMouseEnter}
       onMouseLeave={handleCoverMouseLeave}
     >
-      {/* Edit Cover Button */}
+      {/* Edit Cover Button (style should still work on dark bg) */}
       <IconButton
         className="cover-hover-edit"
         size="small"
@@ -92,7 +76,7 @@ const ProfileHeader = ({
           transition: 'opacity 0.2s',
           '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.7)' },
         }}
-        onClick={handleCoverEditButtonClick} // Uses internal handler which calls prop
+        onClick={handleCoverEditButtonClick}
         aria-label="Edit cover photo"
       >
         <EditIcon fontSize="small"/>
@@ -101,40 +85,42 @@ const ProfileHeader = ({
       {/* Avatar */}
       <Box
         sx={{
-          width: { xs: 120, sm: 160 },
-          height: { xs: 120, sm: 160 },
+          width: { xs: 100, sm: 120, md: 140 }, // Slightly adjusted sizes
+          height: { xs: 100, sm: 120, md: 140 },
           position: 'absolute',
-          bottom: -55,
-          left: { xs: '50%', sm: 20 },
+          bottom: { xs: -50, sm: -60, md: -70 }, // Adjust overlap based on size
+          left: { xs: '50%', sm: 24 }, // Indent more on larger screens
           transform: { xs: 'translateX(-50%)', sm: 'none' },
-          border: '4px solid white',
+          border: '4px solid', // Use theme paper color for border
+          borderColor: 'background.paper', // Ensure good contrast
           borderRadius: '50%',
-          backgroundColor: 'grey.300',
+          bgcolor: 'grey.300', // Fallback bg for avatar itself
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
           boxShadow: 3,
-          '&:hover .photo-hover-edit': { opacity: 1 }, // Show edit button on hover
+          '&:hover .photo-hover-edit': { opacity: 1 },
         }}
-        onClick={handlePhotoClick} // Uses internal handler which calls prop
+        onClick={handlePhotoClick}
         onMouseEnter={handlePhotoMouseEnter}
         onMouseLeave={handlePhotoMouseLeave}
       >
         <Avatar
           src={photoLink || ''}
-          alt={professorName || 'Professor'}
+          alt={professorName || 'User'} // Generic alt
           sx={{
             width: '100%', height: '100%',
-            fontSize: { xs: '3rem', sm: '4rem' },
-            backgroundColor: 'primary.main',
+            fontSize: { xs: '2.5rem', sm: '3rem', md: '3.5rem' }, // Adjust font size
+            // Use theme primary colors for Avatar fallback
+            bgcolor: 'primary.main',
             color: 'primary.contrastText'
           }}
         >
           {!photoLink && initials}
         </Avatar>
-        {/* Edit Photo Button */}
+        {/* Edit Photo Button (style should still work) */}
         <IconButton
           className="photo-hover-edit"
           size="small"
@@ -145,7 +131,7 @@ const ProfileHeader = ({
             transition: 'opacity 0.2s',
             '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.7)' },
           }}
-          onClick={handlePhotoEditButtonClick} // Uses internal handler which calls prop
+          onClick={handlePhotoEditButtonClick}
           aria-label="Edit profile photo"
         >
           <EditIcon fontSize="small"/>
