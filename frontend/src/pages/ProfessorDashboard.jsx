@@ -16,6 +16,11 @@ import OpportunityListItem from '../components/opportunities/OpportunityListItem
 import AddOpportunityForm from '../components/opportunities/AddOpportunityForm';
 import InterestedStudentsDialog from '../components/opportunities/InterestedStudentsDialog';
 
+// 🔽 Import local card images
+import expImg from '../assets/exp.jpeg';
+import coursesImg from '../assets/courses.jpeg';
+import oppImg from '../assets/opp.jpeg';
+
 const ProfessorDashboard = () => {
   const [user, setUser] = useState(null);
   const [professorData, setProfessorData] = useState(null);
@@ -155,25 +160,12 @@ const ProfessorDashboard = () => {
 
               {/* Navigation Cards */}
               <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3, mb: 4, flexWrap: 'wrap' }}>
-                {tabTitles.map((title, index) => (
+                {[expImg, coursesImg, oppImg].map((img, index) => (
                   <Card key={index} sx={{ width: 240, borderRadius: 3 }}>
                     <CardActionArea onClick={() => setTabValue(index)}>
-                      <CardMedia
-                        component="img"
-                        height="140"
-                        image={
-                          index === 0
-                            ? 'https://cdn-icons-png.flaticon.com/512/3382/3382703.png'
-                            : index === 1
-                            ? 'https://cdn-icons-png.flaticon.com/512/1159/1159633.png'
-                            : 'https://cdn-icons-png.flaticon.com/512/3595/3595455.png'
-                        }
-                        alt={title}
-                      />
+                      <CardMedia component="img" height="140" image={img} alt={tabTitles[index]} />
                       <CardContent>
-                        <Typography gutterBottom variant="h6" component="div">
-                          {title}
-                        </Typography>
+                        <Typography gutterBottom variant="h6">{tabTitles[index]}</Typography>
                       </CardContent>
                     </CardActionArea>
                   </Card>
@@ -181,7 +173,7 @@ const ProfessorDashboard = () => {
               </Box>
             </>
           ) : (
-            <Slide direction="up" in={tabValue !== null} mountOnEnter unmountOnExit>
+            <Slide direction="up" in={tabValue !== null}>
               <Box>
                 <Button onClick={() => setTabValue(null)} sx={{ mb: 2 }}>← Back</Button>
                 {tabValue === 0 && <ProfessorExperienceResearch professorData={professorData} />}
@@ -193,19 +185,15 @@ const ProfessorDashboard = () => {
                         + Post New Opportunity
                       </Button>
                     </Box>
-                    {opportunities.length === 0 ? (
-                      <Typography>You haven't posted any opportunities yet.</Typography>
-                    ) : (
-                      opportunities.map(opp => (
-                        <OpportunityListItem
-                          key={opp.id}
-                          opportunity={opp}
-                          onEdit={handleEditOpportunity}
-                          onViewInterested={handleViewInterested}
-                          viewMode="professor"
-                        />
-                      ))
-                    )}
+                    {opportunities.map(opp => (
+                      <OpportunityListItem
+                        key={opp.id}
+                        opportunity={opp}
+                        onEdit={handleEditOpportunity}
+                        onViewInterested={handleViewInterested}
+                        viewMode="professor"
+                      />
+                    ))}
                   </>
                 )}
               </Box>
@@ -214,7 +202,7 @@ const ProfessorDashboard = () => {
         </Box>
       </Box>
 
-      {/* Form Dialog */}
+      {/* Add/Edit Opportunity Form */}
       {showForm && (
         <AddOpportunityForm
           open={showForm}
