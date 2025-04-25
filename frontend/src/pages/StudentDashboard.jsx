@@ -4,8 +4,8 @@
 import React, { useEffect, useState } from 'react'; // Import React
 import { useNavigate } from 'react-router-dom';
 import {
-  Box, Typography, Button, Tabs, Tab, Paper, CircularProgress, Avatar, // Added Tabs, Tab, Paper, CircularProgress, Avatar
-  Dialog, DialogTitle, DialogContent, DialogActions, IconButton // Added Modals and IconButton for potential photo edit
+  Box, Typography, Button, Tabs, Tab, Paper, CircularProgress, Avatar, Container, // Added Tabs, Tab, Paper, CircularProgress, Avatar, Container
+  Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Divider, Stack // Added Modals and IconButton for potential photo edit
 } from '@mui/material';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
@@ -29,25 +29,19 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 
-// TabPanel helper component (copy from ProfessorDashboard or create common component)
+
+// TabPanel helper component - Reduce padding
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
   return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`student-dashboard-tabpanel-${index}`}
-      aria-labelledby={`student-dashboard-tab-${index}`}
-      {...other}
-    >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          {children}
-        </Box>
-      )}
-    </div>
+      <div role="tabpanel" hidden={value !== index} id={`student-dashboard-tabpanel-${index}`} aria-labelledby={`student-dashboard-tab-${index}`} {...other} >
+          {/* --- REDUCED PADDING --- */}
+          {value === index && (<Box sx={{ p: 2 }}>{children}</Box>)}
+           {/* --- END REDUCED PADDING --- */}
+      </div>
   );
 }
+
 
 // a11yProps helper function for Tabs
 function a11yProps(index) {
@@ -269,139 +263,186 @@ const StudentDashboard = () => {
   const photoLink = studentData?.photoLink || '';
   const resumeLink = studentData?.resumeLink || '';
 
+  // --- Style object for Tab hover effect ---
+  const tabHoverSx = {
+    borderRadius: 1, // Optional: slightly round corners on hover
+    '&:hover': {
+        backgroundColor: 'action.hover', // Use theme's hover color
+        // Or specify a color: e.g., backgroundColor: 'rgba(0, 0, 0, 0.04)'
+    },
+  };
+  // --- End Style object ---
+
+
   return (
     <DashboardLayout handleSignOut={handleSignOut} dashboardPath='/student-dashboard'>
-      <Box sx={{ mb: 3, textAlign: 'center' }}>
-        <Typography variant="h4" gutterBottom> Student Dashboard </Typography>
-        {studentData && ( <Typography variant="h6" color="text.secondary"> Welcome, {studentData.name || 'Student'}! </Typography> )}
-      </Box>
-
-      <Paper elevation={3} sx={{ borderRadius: 2, position: 'relative' }}>
-        {isSaving && ( <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}> <CircularProgress /> </Box> )}
-
-        <Tabs value={tabValue} onChange={handleTabChange} variant="scrollable" scrollButtons="auto" aria-label="Student Dashboard Tabs" textColor="primary" indicatorColor="primary" sx={{ borderBottom: 1, borderColor: 'divider' }} >
-          <Tab label="Profile" {...a11yProps(0)} />
-          <Tab label="Experience and Research" {...a11yProps(1)} />
-          <Tab label="Courses Enrolled" {...a11yProps(2)} />
-          <Tab label="Opportunities Interested In" {...a11yProps(3)} />
-        </Tabs>
-
-        {/* --- Profile Tab (US3.1 & US3.2) --- */}
-        <TabPanel value={tabValue} index={0}>
-           {/* Use ProfileHeader - Adapt props as needed (no cover photo handling) */}
-           <ProfileHeader
-             // coverLink={null} // Explicitly no cover link
-             photoLink={photoLink}
-             professorName={studentData?.name} // Pass student name
-             // No cover handlers needed
-             // onEditCover={() => {}}
-             // onViewCover={() => {}}
-             onEditPhoto={handleTriggerEditPhoto} // Use photo handlers
-             onViewPhoto={handleTriggerViewPhoto}
-           />
-           {/* Profile Info Section */}
-           <Box sx={{ textAlign: 'left', pt: 2, pl: { xs: 0, sm: 2 } }}>
-                <EditableField
-                    label="Full Name"
-                    value={studentData?.name}
-                    onSave={handleNameSave}
-                    typographyVariant="h5" // Adjust styling as needed
-                    textFieldProps={{ size: 'small' }}
-                    containerSx={{ mb: 1, fontWeight: 'bold' }}
-                    isSaving={isSaving}
-                />
-                <EditableField
-                    label="Major"
-                    value={studentData?.major}
-                    onSave={handleMajorSave}
-                    typographyVariant="body1"
-                    placeholder="(e.g., Computer Science)"
-                    emptyText="Major: (Not set)"
-                    textFieldProps={{ size: 'small' }}
-                    containerSx={{ mb: 1 }}
-                    isSaving={isSaving}
-                />
-                 <EditableField
-                    label="Year"
-                    value={studentData?.year}
-                    onSave={handleYearSave}
-                    typographyVariant="body1"
-                    placeholder="(e.g., Sophomore, Junior, PhD Year 2)"
-                    emptyText="Year: (Not set)"
-                    textFieldProps={{ size: 'small' }}
-                    containerSx={{ mb: 2 }}
-                    isSaving={isSaving}
-                />
-                 <Box sx={{ mb: 3 }}>
-                    <Typography variant="h6" gutterBottom sx={{ fontWeight: 'medium' }}>Description / Bio</Typography>
-                    <EditableTextArea
-                        label="Description / Bio"
-                        value={studentData?.description} // Changed field name
-                        onSave={handleDescriptionSave}
-                        placeholder="(Tell professors a bit about yourself)"
-                        emptyText="(No description provided)"
-                        textFieldProps={{ rows: 4 }}
-                        isSaving={isSaving}
-                    />
+            {/* --- WRAP CONTENT IN CONTAINER --- */}
+            <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+                <Box sx={{ mb: 3, textAlign: 'center' }}>
+                    {studentData && (<Typography variant="h5" color="text.secondary" gutterBottom> Welcome, {studentData.name || 'Student'}! </Typography>)}
                 </Box>
-                 <FileUploadField
-                    label="Resume/CV"
-                    fileLink={resumeLink}
-                    accept=".pdf,.doc,.docx" // Allow common doc types
-                    onSave={handleResumeSave}
-                    onDelete={handleResumeDelete}
-                    isSaving={isSaving}
-                    viewButtonText="View Document"
-                    selectButtonText="Upload Resume/CV"
-                    noFileText="No resume/CV uploaded"
-                    containerSx={{ mt: 2 }}
-                 />
-           </Box>
-        </TabPanel>
 
-        {/* +++ Updated TabPanel +++ */}
-        <TabPanel value={tabValue} index={1}>
-            {/* Render the new component, passing data */}
-            {/* isSaving is passed for profile edits, not relevant here */}
-            <StudentExperienceResearch studentData={studentData} />
-        </TabPanel>
-        {/* +++ End Update +++ */}
-        <TabPanel value={tabValue} index={2}>
-           {/* Render the new courses component */}
-           <StudentCoursesEnrolled studentData={studentData} />
-        </TabPanel>
-        <TabPanel value={tabValue} index={3}>
-            <Typography variant="body2" color="textSecondary"></Typography>
-           {/* Future: List of bookmarked/applied opportunties */}
-           <OpportunityFeed />
-        </TabPanel>
-      </Paper>
+                <Paper elevation={3} sx={{ borderRadius: 3, position: 'relative' }}>
+                    {isSaving && (<Box sx={{ /* ... Saving overlay ... */ }}> <CircularProgress /> </Box>)}
 
-       {/* --- Photo Modals (Copied/Adapted from ProfessorDashboard) --- */}
-       <Dialog open={viewPhotoMode} onClose={() => !isSaving && setViewPhotoMode(false)} maxWidth="sm" fullWidth>
-         <DialogTitle>Profile Photo</DialogTitle>
-         <DialogContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            {photoLink ? ( <img src={photoLink} alt="Profile Preview" style={{ maxWidth: '100%', maxHeight: '70vh', borderRadius: '8px' }} /> ) : ( <Avatar sx={{ width: 150, height: 150, fontSize: '4rem' }}>{studentData?.name?.[0] || '?'}</Avatar> )}
-         </DialogContent>
-         <DialogActions>
-             <Button onClick={handleTriggerEditPhoto} startIcon={<EditIcon />} disabled={isSaving}>Edit</Button>
-             {photoLink && ( <Button onClick={handlePhotoDelete} color="error" startIcon={<DeleteIcon />} disabled={isSaving}>Delete</Button> )}
-             <Button onClick={() => setViewPhotoMode(false)} startIcon={<CloseIcon />} disabled={isSaving}>Close</Button>
-         </DialogActions>
-       </Dialog>
+                    {/* --- TABS: USE fullWidth VARIANT --- */}
+                    <Tabs
+                        value={tabValue}
+                        onChange={handleTabChange}
+                        variant="fullWidth" // Changed from standard/centered
+                        // centered // Not needed with fullWidth
+                        aria-label="Student Dashboard Tabs"
+                        textColor="primary"
+                        indicatorColor="primary"
+                        sx={{ borderBottom: 1, borderColor: 'divider' }}
+                    >
+                        {/* Apply hover sx to each Tab */}
+                        <Tab label="Profile" {...a11yProps(0)} sx={tabHoverSx} />
+                        <Tab label="Experience and Research" {...a11yProps(1)} sx={tabHoverSx} />
+                        <Tab label="Courses Enrolled" {...a11yProps(2)} sx={tabHoverSx} />
+                        <Tab label="Opportunities Interested In" {...a11yProps(3)} sx={tabHoverSx} />
+                    </Tabs>
+                    {/* --- END TABS --- */}
 
-       <Dialog open={editPhotoMode} onClose={() => !isSaving && handlePhotoCancel()} maxWidth="xs" fullWidth>
-          <DialogTitle>Update Profile Photo</DialogTitle>
-          <DialogContent>
-             <Button variant="outlined" component="label" fullWidth sx={{ mb: 1 }} disabled={isSaving}> {photoFile ? `Selected: ${photoFile.name}` : 'Select New Profile Image'} <input type="file" accept="image/*" hidden onChange={handlePhotoFileChange} disabled={isSaving}/> </Button>
-             {studentData?.photoLink && ( <Button variant="outlined" color="error" onClick={handlePhotoDelete} startIcon={<DeleteIcon />} fullWidth size="small" disabled={isSaving}> Remove Current Photo </Button> )}
-          </DialogContent>
-         <DialogActions>
-             <Button onClick={handlePhotoCancel} disabled={isSaving}>Cancel</Button>
-             <Button onClick={handlePhotoSave} color="primary" variant="contained" disabled={!photoFile || isSaving}>Save</Button>
-         </DialogActions>
-       </Dialog>
 
+                    {/* --- Profile Tab (US3.1 & US3.2) --- */}
+                    <TabPanel value={tabValue} index={0}>
+                        <ProfileHeader
+                           // coverLink={null}
+                           photoLink={photoLink}
+                           professorName={studentData?.name}
+                           // onEditCover={() => {}}
+                           // onViewCover={() => {}}
+                           onEditPhoto={handleTriggerEditPhoto}
+                           onViewPhoto={handleTriggerViewPhoto}
+                        />
+                        {/* --- RESTRUCTURED PROFILE INFO --- */}
+                     <Box sx={{ pt: 2, pl: { xs: 0, sm: 1 } }}> {/* Add padding around the whole content */}
+                        <Stack spacing={3}> {/* Increased spacing for main sections */}
+
+                             {/* --- Basic Info Section --- */}
+                             <Box>
+                                 {/* Name - Keep prominent */}
+                                 <EditableField
+                                     label="Full Name"
+                                     value={studentData?.name}
+                                     onSave={handleNameSave}
+                                     typographyVariant="h5" // Make name slightly larger
+                                     // You might need to adjust EditableField internally or use sx here if variant alone isn't enough
+                                     // sx={{ '& .MuiTypography-root': { fontWeight: 'medium' } }} // Example of targeting internal Typography
+                                     textFieldProps={{ size: 'small' }}
+                                     isSaving={isSaving}
+                                 />
+                                 {/* Group Major and Year */}
+                                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1.5, sm: 4 }} sx={{ mt: 1.5 }}> {/* Stack row on small screens+ */}
+                                     <EditableField
+                                         label="Major"
+                                         value={studentData?.major}
+                                         onSave={handleMajorSave}
+                                         typographyVariant="body1"
+                                         placeholder="(e.g., Computer Science)"
+                                         emptyText="(Not set)"
+                                         textFieldProps={{ size: 'small' }}
+                                         isSaving={isSaving}
+                                         containerSx={{ flexGrow: 1 }} // Allow fields to grow in row layout
+                                     />
+                                     <EditableField
+                                         label="Year"
+                                         value={studentData?.year}
+                                         onSave={handleYearSave}
+                                         typographyVariant="body1"
+                                         placeholder="(e.g., Sophomore)"
+                                         emptyText="(Not set)"
+                                         textFieldProps={{ size: 'small' }}
+                                         isSaving={isSaving}
+                                         containerSx={{ flexGrow: 1 }} // Allow fields to grow in row layout
+                                     />
+                                 </Stack>
+                             </Box>
+
+                             <Divider /> {/* Separator */}
+
+                             {/* --- Description/Bio Section --- */}
+                             <Box>
+                                 <EditableTextArea
+                                     label="About / Bio" // Label here is mostly for edit mode now
+                                     value={studentData?.description}
+                                     onSave={handleDescriptionSave}
+                                     placeholder="(Tell professors a bit about yourself)"
+                                     emptyText="(No description provided)"
+                                     typographyVariant="body2" // Use body2 for potentially long text
+                                     textFieldProps={{ rows: 4 }}
+                                     isSaving={isSaving}
+                                 />
+                             </Box>
+
+                            <Divider /> {/* Separator */}
+
+                             {/* --- Resume/CV Section --- */}
+                             <Box>
+                                 <Typography variant="h6" gutterBottom sx={{ fontWeight: 'light' }}>
+                                     Resume / CV
+                                 </Typography>
+                                 <FileUploadField
+                                    //  label="Resume/CV" // Still useful for accessibility/edit mode
+                                     fileLink={resumeLink}
+                                     accept=".pdf,.doc,.docx"
+                                     onSave={handleResumeSave}
+                                     onDelete={handleResumeDelete}
+                                     isSaving={isSaving}
+                                     viewButtonText="View Document"
+                                     selectButtonText="Upload Resume/CV"
+                                     noFileText="No resume/CV uploaded"
+                                 />
+                             </Box>
+
+                        </Stack>
+                     </Box>
+                      {/* --- END RESTRUCTURED PROFILE INFO --- */}
+                    </TabPanel>
+
+                    {/* --- Other TabPanels (Keep as is, padding reduced in TabPanel component) --- */}
+                    <TabPanel value={tabValue} index={1}>
+                        <StudentExperienceResearch studentData={studentData} />
+                    </TabPanel>
+                    <TabPanel value={tabValue} index={2}>
+                        <StudentCoursesEnrolled studentData={studentData} />
+                    </TabPanel>
+                    <TabPanel value={tabValue} index={3}>
+                         {/* Check if OpportunityFeed should be here or if this is for posts student *is* interested in */}
+                         <OpportunityFeed />
+                         {/* Or if it's for posts interested in: Needs different component */}
+                         {/* <Typography variant="h6" gutterBottom>My Interested Opportunities</Typography> */}
+                         {/* <MyInterestedOpportunities studentId={user?.uid} /> */}
+                     </TabPanel>
+                </Paper>
+
+
+            {/* --- Photo Modals (Copied/Adapted from ProfessorDashboard) --- */}
+            <Dialog open={viewPhotoMode} onClose={() => !isSaving && setViewPhotoMode(false)} maxWidth="sm" fullWidth>
+              <DialogTitle>Profile Photo</DialogTitle>
+              <DialogContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                  {photoLink ? ( <img src={photoLink} alt="Profile Preview" style={{ maxWidth: '100%', maxHeight: '70vh', borderRadius: '8px' }} /> ) : ( <Avatar sx={{ width: 150, height: 150, fontSize: '4rem' }}>{studentData?.name?.[0] || '?'}</Avatar> )}
+              </DialogContent>
+              <DialogActions>
+                  <Button onClick={handleTriggerEditPhoto} startIcon={<EditIcon />} disabled={isSaving}>Edit</Button>
+                  {photoLink && ( <Button onClick={handlePhotoDelete} color="error" startIcon={<DeleteIcon />} disabled={isSaving}>Delete</Button> )}
+                  <Button onClick={() => setViewPhotoMode(false)} startIcon={<CloseIcon />} disabled={isSaving}>Close</Button>
+              </DialogActions>
+            </Dialog>
+
+            <Dialog open={editPhotoMode} onClose={() => !isSaving && handlePhotoCancel()} maxWidth="xs" fullWidth>
+                <DialogTitle>Update Profile Photo</DialogTitle>
+                <DialogContent>
+                  <Button variant="outlined" component="label" fullWidth sx={{ mb: 1 }} disabled={isSaving}> {photoFile ? `Selected: ${photoFile.name}` : 'Select New Profile Image'} <input type="file" accept="image/*" hidden onChange={handlePhotoFileChange} disabled={isSaving}/> </Button>
+                  {studentData?.photoLink && ( <Button variant="outlined" color="error" onClick={handlePhotoDelete} startIcon={<DeleteIcon />} fullWidth size="small" disabled={isSaving}> Remove Current Photo </Button> )}
+                </DialogContent>
+              <DialogActions>
+                  <Button onClick={handlePhotoCancel} disabled={isSaving}>Cancel</Button>
+                  <Button onClick={handlePhotoSave} color="primary" variant="contained" disabled={!photoFile || isSaving}>Save</Button>
+              </DialogActions>
+            </Dialog>
+      </Container>
     </DashboardLayout>
   );
 };

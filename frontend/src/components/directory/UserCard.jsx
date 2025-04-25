@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-vars */
 // frontend/src/components/directory/UserCard.jsx
 import React from 'react';
-import { Card, CardContent, Typography, Avatar, Box, Chip, Button } from '@mui/material';
+import { Card, CardContent, Typography, Avatar, Box, Chip, Button, Stack } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom'; // Use alias to avoid conflict with MUI Link
 import SchoolIcon from '@mui/icons-material/School'; // Example icon for student
 import BusinessCenterIcon from '@mui/icons-material/BusinessCenter'; // Example icon for professor
@@ -15,6 +15,9 @@ const getInitials = (name) => {
 };
 
 const UserCard = ({ user }) => {
+  // Added experienceTags
+  const { name, photoLink, role, major, year, department, interests, experienceTags, id } = user;
+
   // Determine role-specific info
   const roleInfo = user.role === 'student'
     ? `${user.major || 'Undecided Major'} - ${user.year || 'Unknown Year'}`
@@ -23,19 +26,21 @@ const UserCard = ({ user }) => {
   const profileLink = `/profile/${user.id}`; // Basic profile link structure (page needs creation later)
 
   return (
-    <Card sx={{ display: 'flex', flexDirection: 'column', height: '100%', border: '1px solid', borderColor: 'divider' }}>
-      <CardContent sx={{ flexGrow: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+    // Ensure Card takes full height if used within a Grid structure for alignment
+    <Card sx={{ display: 'flex', flexDirection: 'column', height: '100%', border: '1px solid', borderColor: 'divider', justifyContent: 'space-between', borderRadius: 3, padding: 0.5, boxShadow: 3 }}>
+      <CardContent sx={{ flexGrow: 1}}> {/* Let content grow */}
+        {/* Avatar, Name, Role Info */}
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
           <Avatar
-            src={user.photoLink || ''}
-            alt={user.name}
+            src={photoLink || ''}
+            alt={name}
             sx={{ width: 56, height: 56, mr: 2, bgcolor: 'primary.main' }}
           >
-            {!user.photoLink && getInitials(user.name)}
+            {!photoLink && getInitials(name)}
           </Avatar>
-          <Box>
+          <Box sx={{ overflow: 'hidden' }}> {/* Prevent text overflow */}
             <Typography variant="h6" component="div" noWrap>
-              {user.name || 'Unnamed User'}
+              {name || 'Unnamed User'}
             </Typography>
             <Typography variant="body2" color="text.secondary" noWrap>
               {roleInfo}
@@ -43,39 +48,65 @@ const UserCard = ({ user }) => {
           </Box>
         </Box>
 
-        {user.role && (
+        {/* Role Chip */}
+        {role && (
             <Chip
-                icon={user.role === 'student' ? <SchoolIcon /> : <BusinessCenterIcon />}
-                label={user.role.charAt(0).toUpperCase() + user.role.slice(1)} // Capitalize role
+                icon={role === 'student' ? <SchoolIcon fontSize="small"/> : <BusinessCenterIcon fontSize="small"/>}
+                label={role.charAt(0).toUpperCase() + role.slice(1)} // Capitalize role
                 size="small"
-                color={user.role === 'student' ? 'secondary' : 'primary'}
-                sx={{ mb: 1 }}
+                color={role === 'student' ? 'secondary' : 'primary'}
+                sx={{ mb: 1.5 }} // Add some margin below
             />
         )}
 
-        {/* Displaying interests (example, adjust based on your data structure) */}
-        {/* Assuming interests might be an array or comma-separated string */}
-        {user.interests && (
+        {/* --- Display Experience Tags (NEW SECTION) --- */}
+        {experienceTags && experienceTags.length > 0 && (
+            <Box sx={{ mt: 1, mb: 1.5 }}> {/* Add margin */}
+                 {/* Optional Title */}
+                 {/* <Typography variant="caption" display="block" color="text.secondary" sx={{ mb: 0.5 }}>Skills/Keywords:</Typography> */}
+                 <Stack
+                    direction="row"
+                    flexWrap="wrap"
+                    spacing={0.5} // Spacing between chips
+                    useFlexGap // Handles spacing better with wrapping
+                    sx={{ maxHeight: '52px', overflow: 'hidden' }} // Limit height to roughly 2 lines of small chips
+                 >
+                    {/* Limit number of tags shown */}
+                    {experienceTags.slice(0, 6).map((tag) => (
+                        <Chip key={tag} label={tag} size="small" variant="outlined" />
+                    ))}
+                    {experienceTags.length > 6 && (
+                        <Chip label="..." size="small" variant="outlined"/> // Indicator for more tags
+                    )}
+                 </Stack>
+            </Box>
+        )}
+        {/* --- End Display Experience Tags --- */}
+
+
+        {/* Displaying interests (Keep your existing logic if 'interests' is a different field) */}
+        {interests && (
             <Box sx={{ mt: 1 }}>
                  <Typography variant="caption" color="text.secondary">Interests:</Typography>
-                 <Typography variant="body2" sx={{ maxHeight: 60, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                     {Array.isArray(user.interests) ? user.interests.slice(0, 3).join(', ') : String(user.interests).substring(0, 100)}
-                     {Array.isArray(user.interests) && user.interests.length > 3 ? '...' : ''}
-                     {typeof user.interests === 'string' && user.interests.length > 100 ? '...' : ''}
+                 <Typography variant="body2" sx={{ maxHeight: 40, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                     {/* Display interests (truncated) */}
+                     {Array.isArray(interests) ? interests.slice(0, 3).join(', ') : String(interests)}
+                     {Array.isArray(interests) && interests.length > 3 ? '...' : ''}
                  </Typography>
             </Box>
         )}
 
       </CardContent>
-      <Box sx={{ p: 1, display: 'flex', justifyContent: 'flex-end' }}>
-         {/* Link to a future profile page */}
+
+      {/* View Profile Button - Pushed to bottom */}
+      <Box sx={{ p: 1, pt: 0, display: 'flex', justifyContent: 'flex-end', mt: 'auto' }}> {/* mt: 'auto' pushes to bottom */}
         <Button
             component={RouterLink}
             to={profileLink}
             size="small"
             variant="outlined"
-         >
-          View Profile
+        >
+            View Profile
         </Button>
       </Box>
     </Card>

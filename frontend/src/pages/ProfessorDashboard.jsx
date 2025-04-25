@@ -530,7 +530,7 @@ const ProfessorDashboard = () => {
         {/* +++ Update TabPanel 1 +++ */}
         <TabPanel value={tabValue} index={1}>
            {/* Render the new component */}
-           <ProfessorExperienceResearch professorData={professorData} />
+           {professorData && <ProfessorExperienceResearch professorData={professorData} />}
         </TabPanel>
         {/* +++ End Update +++ */}
         <TabPanel value={tabValue} index={2}> <ProfessorCourses /> </TabPanel>
