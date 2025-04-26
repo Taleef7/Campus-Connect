@@ -1,29 +1,26 @@
-/* eslint-disable no-unused-vars */
-/* eslint-disable react/prop-types */
-// frontend/src/pages/StudentDashboard.jsx
-import React, { useEffect, useState } from 'react'; // Import React
+import React, { useEffect, useState } from 'react'; 
 import { useNavigate } from 'react-router-dom';
 import {
-  Box, Typography, Button, Tabs, Tab, Paper, CircularProgress, Avatar, Container, // Added Tabs, Tab, Paper, CircularProgress, Avatar, Container
-  Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Divider, Stack // Added Modals and IconButton for potential photo edit
+  Box, Typography, Button, Tabs, Tab, Paper, CircularProgress, Avatar, Container, 
+  Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Divider, Stack 
 } from '@mui/material';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { onSnapshot, doc, updateDoc, getDoc } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'; // Import storage functions
-import { app } from '../firebase'; // Import app
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'; 
+import { app } from '../firebase'; 
 
 // Import reusable components
 import DashboardLayout from '../components/dashboard/DashboardLayout';
-import ProfileHeader from '../components/profile/ProfileHeader'; // Reuse ProfileHeader
-import EditableField from '../components/common/EditableField'; // Reuse EditableField
-import EditableTextArea from '../components/common/EditableTextArea'; // Reuse EditableTextArea
-import FileUploadField from '../components/common/FileUploadField'; // Reuse FileUploadField
-import OpportunityFeed from '../components/opportunities/OpportunityFeed'; // Make sure this import exists and path is correct
-import StudentExperienceResearch from '../components/profile/StudentExperienceResearch'; // Adjust path if needed
-import StudentCoursesEnrolled from '../components/profile/StudentCoursesEnrolled'; // Adjust path if needed
+import ProfileHeader from '../components/profile/ProfileHeader'; 
+import EditableField from '../components/common/EditableField'; 
+import EditableTextArea from '../components/common/EditableTextArea'; 
+import FileUploadField from '../components/common/FileUploadField'; 
+import OpportunityFeed from '../components/opportunities/OpportunityFeed'; 
+import StudentExperienceResearch from '../components/profile/StudentExperienceResearch'; 
+import StudentCoursesEnrolled from '../components/profile/StudentCoursesEnrolled';
 
-// Icons (Optional, but needed if reusing ProfileHeader with edit icons etc.)
+// Icons 
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CheckIcon from '@mui/icons-material/Check';
@@ -57,12 +54,11 @@ const StudentDashboard = () => {
   const [studentData, setStudentData] = useState(null);
   const [uiLoading, setUiLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [tabValue, setTabValue] = useState(0); // State for current tab index
-  const [errorMsg, setErrorMsg] = useState(""); // Added state for error messages
+  const [tabValue, setTabValue] = useState(0); 
+  const [errorMsg, setErrorMsg] = useState("");
   const navigate = useNavigate();
-  const storage = getStorage(app); // Initialize storage
+  const storage = getStorage(app); 
 
-  // State for Profile Picture editing (similar to ProfessorDashboard)
   const [editPhotoMode, setEditPhotoMode] = useState(false);
   const [photoFile, setPhotoFile] = useState(null);
   const [viewPhotoMode, setViewPhotoMode] = useState(false);
@@ -71,54 +67,46 @@ const StudentDashboard = () => {
   const [coverFile, setCoverFile] = useState(null);
   const [viewCoverMode, setViewCoverMode] = useState(false); // If you want a view dialog
 
-  // --- Effects ---
-  // --- UPDATED useEffect for Realtime Data ---
   useEffect(() => {
     setUiLoading(true);
-    let firestoreUnsubscribe = () => {}; // Initialize unsubscribe function for Firestore
+    let firestoreUnsubscribe = () => {}; 
 
-    // Listen for Auth changes
     const authUnsubscribe = onAuthStateChanged(auth, (currentUser) => {
-        // Clean up previous Firestore listener if user changes or logs out
+        
         firestoreUnsubscribe();
 
         if (!currentUser) {
             navigate('/student-login');
             setUiLoading(false);
-            setUser(null); // Clear user
-            setStudentData(null); // Clear data
+            setUser(null); 
+            setStudentData(null); 
             return;
         }
         if (!currentUser.emailVerified) {
              console.warn(`User ${currentUser.uid} email not verified.`);
              setErrorMsg("Verify your email.");
-             navigate('/student-login'); // Or show verify message page
+             navigate('/student-login'); 
              setUiLoading(false);
-             setUser(null); // Clear user
-             setStudentData(null); // Clear data
+             setUser(null); 
+             setStudentData(null); 
              return;
         }
 
-        // Set authenticated user
         setUser(currentUser);
 
-        // Set up the Firestore listener for the user's document
         const docRef = doc(db, 'users', currentUser.uid);
 
-        // onSnapshot returns an unsubscribe function
         firestoreUnsubscribe = onSnapshot(docRef, (docSnap) => {
-            // Runs whenever the document changes
             if (docSnap.exists()) {
                 const data = docSnap.data();
-                // Role check
                 if (data.role !== 'student') {
                     console.warn(`User ${currentUser.uid} is not a student.`);
                     signOut(auth).then(() => navigate('/student-login'));
                     setStudentData(null);
                 } else {
-                    // Update state with the latest data
+                    
                     setStudentData({ id: docSnap.id, ...data });
-                    setErrorMsg(''); // Clear errors on success
+                    setErrorMsg(''); 
                 }
             } else {
                 console.error("Firestore document missing for authenticated user:", currentUser.uid);
@@ -126,25 +114,21 @@ const StudentDashboard = () => {
                 signOut(auth).then(() => navigate('/student-login'));
                 setStudentData(null);
             }
-            setUiLoading(false); // Stop loading after first snapshot/error
+            setUiLoading(false); 
         }, (error) => {
-            // Handle listener errors
             console.error("Error listening to student data:", error);
             setErrorMsg("Failed to load profile in real-time.");
             setStudentData(null);
             setUiLoading(false);
-            // Maybe logout on persistent errors
-            // signOut(auth).then(() => navigate('/student-login'));
         });
 
     });
 
-    // Cleanup function: Unsubscribe from both listeners
     return () => {
         authUnsubscribe();
         firestoreUnsubscribe();
     };
-}, [navigate]); // Dependency array
+}, [navigate]); 
 
 
   // --- Event Handlers ---
@@ -158,7 +142,7 @@ const StudentDashboard = () => {
 
 
   // --- Save Handlers for Profile Fields ---
-  // Generic field update function
+
   const handleProfileUpdate = async (fieldData) => {
       if (!user?.uid) return;
       setIsSaving(true);
@@ -174,18 +158,17 @@ const StudentDashboard = () => {
       }
   };
 
-  // Specific handlers using the generic function
   const handleNameSave = (newName) => handleProfileUpdate({ name: newName.trim() });
-  const handleMajorSave = (newMajor) => handleProfileUpdate({ major: newMajor.trim() }); // Added Major
-  const handleYearSave = (newYear) => handleProfileUpdate({ year: newYear.trim() }); // Added Year
-  const handleDescriptionSave = (newDescription) => handleProfileUpdate({ description: newDescription.trim() }); // Added Description
+  const handleMajorSave = (newMajor) => handleProfileUpdate({ major: newMajor.trim() }); 
+  const handleYearSave = (newYear) => handleProfileUpdate({ year: newYear.trim() }); 
+  const handleDescriptionSave = (newDescription) => handleProfileUpdate({ description: newDescription.trim() }); 
 
-  // Resume Handlers (similar to professor's)
+  // Resume Handlers 
   const handleResumeSave = async (newResumeFile) => {
     if (!user?.uid || !newResumeFile) return;
     setIsSaving(true);
     const oldPath = studentData?.resumePath;
-    const newPath = `resumes/${user.uid}/${Date.now()}_${newResumeFile.name}`; // Using same path structure for simplicity
+    const newPath = `resumes/${user.uid}/${Date.now()}_${newResumeFile.name}`; 
     try {
         const docRef = doc(db, 'users', user.uid);
         if (oldPath) { const oldRef = ref(storage, oldPath); await deleteObject(oldRef).catch(err => console.warn("Old resume delete failed:", err)); }
@@ -213,7 +196,7 @@ const StudentDashboard = () => {
      finally { setIsSaving(false); }
   };
 
-  // --- Photo Handlers (Copied/Adapted from ProfessorDashboard) ---
+  // --- Photo Handlers  ---
   const handleTriggerViewPhoto = () => { (studentData?.photoLink) ? setViewPhotoMode(true) : handleTriggerEditPhoto(); };
   const handleTriggerEditPhoto = () => { setEditPhotoMode(true); setPhotoFile(null); setViewPhotoMode(false); };
   const handlePhotoFileChange = (e) => { if (e.target.files && e.target.files[0]) { setPhotoFile(e.target.files[0]); } };
@@ -222,7 +205,7 @@ const StudentDashboard = () => {
     if (!user?.uid || !photoFile) return;
     setIsSaving(true);
     const oldPath = studentData?.photoPath;
-    const newPath = `photos/${user.uid}/${Date.now()}_${photoFile.name}`; // Using same photos path
+    const newPath = `photos/${user.uid}/${Date.now()}_${photoFile.name}`; 
     try {
       const docRef = doc(db, 'users', user.uid);
       if (oldPath) { const oldRef = ref(storage, oldPath); await deleteObject(oldRef).catch(err => console.warn("Old photo delete failed:", err)); }
@@ -319,7 +302,6 @@ const StudentDashboard = () => {
      return ( <DashboardLayout> <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}> <CircularProgress /> </Box> </DashboardLayout> );
    }
 
-  // Only proceed to render dashboard content if studentData is loaded and role check passed
   if (!studentData) {
     // This case might occur briefly or if there was an error caught above
     // You might want a more specific error message or redirect here too
@@ -331,10 +313,9 @@ const StudentDashboard = () => {
 
   // --- Style object for Tab hover effect ---
   const tabHoverSx = {
-    borderRadius: 1, // Optional: slightly round corners on hover
+    borderRadius: 1, 
     '&:hover': {
-        backgroundColor: 'action.hover', // Use theme's hover color
-        // Or specify a color: e.g., backgroundColor: 'rgba(0, 0, 0, 0.04)'
+        backgroundColor: 'action.hover', 
     },
   };
   // --- End Style object ---
@@ -355,8 +336,7 @@ const StudentDashboard = () => {
                     <Tabs
                         value={tabValue}
                         onChange={handleTabChange}
-                        variant="fullWidth" // Changed from standard/centered
-                        // centered // Not needed with fullWidth
+                        variant="fullWidth" 
                         aria-label="Student Dashboard Tabs"
                         textColor="primary"
                         indicatorColor="primary"
@@ -374,7 +354,6 @@ const StudentDashboard = () => {
                     {/* --- Profile Tab (US3.1 & US3.2) --- */}
                     <TabPanel value={tabValue} index={0}>
                         <ProfileHeader
-                           // coverLink={null}
                            photoLink={photoLink}
                            coverLink={studentData?.coverLink || null} // Pass cover link
                            professorName={studentData?.name}
@@ -383,25 +362,21 @@ const StudentDashboard = () => {
                            onEditPhoto={handleTriggerEditPhoto}
                            onViewPhoto={handleTriggerViewPhoto}
                         />
-                        {/* --- RESTRUCTURED PROFILE INFO --- */}
-                     <Box sx={{ pt: 2, pl: { xs: 0, sm: 1 } }}> {/* Add padding around the whole content */}
-                        <Stack spacing={3}> {/* Increased spacing for main sections */}
+                        {/* --- PROFILE INFO --- */}
+                     <Box sx={{ pt: 2, pl: { xs: 0, sm: 1 } }}> 
+                        <Stack spacing={3}> 
 
-                             {/* --- Basic Info Section --- */}
                              <Box>
-                                 {/* Name - Keep prominent */}
                                  <EditableField
                                      label="Full Name"
                                      value={studentData?.name}
                                      onSave={handleNameSave}
-                                     typographyVariant="h5" // Make name slightly larger
-                                     // You might need to adjust EditableField internally or use sx here if variant alone isn't enough
-                                     // sx={{ '& .MuiTypography-root': { fontWeight: 'medium' } }} // Example of targeting internal Typography
+                                     typographyVariant="h5" 
                                      textFieldProps={{ size: 'small' }}
                                      isSaving={isSaving}
                                  />
                                  {/* Group Major and Year */}
-                                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1.5, sm: 4 }} sx={{ mt: 1.5 }}> {/* Stack row on small screens+ */}
+                                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1.5, sm: 4 }} sx={{ mt: 1.5 }}> 
                                      <EditableField
                                          label="Major"
                                          value={studentData?.major}
@@ -411,7 +386,7 @@ const StudentDashboard = () => {
                                          emptyText="(Not set)"
                                          textFieldProps={{ size: 'small' }}
                                          isSaving={isSaving}
-                                         containerSx={{ flexGrow: 1 }} // Allow fields to grow in row layout
+                                         containerSx={{ flexGrow: 1 }} 
                                      />
                                      <EditableField
                                          label="Year"
@@ -422,12 +397,12 @@ const StudentDashboard = () => {
                                          emptyText="(Not set)"
                                          textFieldProps={{ size: 'small' }}
                                          isSaving={isSaving}
-                                         containerSx={{ flexGrow: 1 }} // Allow fields to grow in row layout
+                                         containerSx={{ flexGrow: 1 }} 
                                      />
                                  </Stack>
                              </Box>
 
-                             <Divider /> {/* Separator */}
+                             <Divider /> 
 
                              <Box>
                               {/* This Typography is just the section title */}
@@ -447,7 +422,7 @@ const StudentDashboard = () => {
                               />
                             </Box>
 
-                            <Divider /> {/* Separator */}
+                            <Divider /> 
 
                              {/* --- Resume/CV Section --- */}
                              <Box>
@@ -455,7 +430,6 @@ const StudentDashboard = () => {
                                      Resume / CV
                                  </Typography>
                                  <FileUploadField
-                                    //  label="Resume/CV" // Still useful for accessibility/edit mode
                                      fileLink={resumeLink}
                                      accept=".pdf,.doc,.docx"
                                      onSave={handleResumeSave}
@@ -469,10 +443,9 @@ const StudentDashboard = () => {
 
                         </Stack>
                      </Box>
-                      {/* --- END RESTRUCTURED PROFILE INFO --- */}
+                      {/* --- END PROFILE INFO --- */}
                     </TabPanel>
 
-                    {/* --- Other TabPanels (Keep as is, padding reduced in TabPanel component) --- */}
                     <TabPanel value={tabValue} index={1}>
                         <StudentExperienceResearch studentData={studentData} />
                     </TabPanel>
@@ -480,16 +453,12 @@ const StudentDashboard = () => {
                         <StudentCoursesEnrolled studentData={studentData} />
                     </TabPanel>
                     <TabPanel value={tabValue} index={3}>
-                         {/* Check if OpportunityFeed should be here or if this is for posts student *is* interested in */}
                          <OpportunityFeed />
-                         {/* Or if it's for posts interested in: Needs different component */}
-                         {/* <Typography variant="h6" gutterBottom>My Interested Opportunities</Typography> */}
-                         {/* <MyInterestedOpportunities studentId={user?.uid} /> */}
                      </TabPanel>
                 </Paper>
 
 
-            {/* --- Photo Modals (Copied/Adapted from ProfessorDashboard) --- */}
+            {/* --- Photo Modals --- */}
             <Dialog open={viewPhotoMode} onClose={() => !isSaving && setViewPhotoMode(false)} maxWidth="sm" fullWidth>
               <DialogTitle>Profile Photo</DialogTitle>
               <DialogContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>

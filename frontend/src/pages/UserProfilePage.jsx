@@ -1,6 +1,3 @@
-/* eslint-disable react/prop-types */
-/* eslint-disable no-unused-vars */
-// frontend/src/pages/UserProfilePage.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import { doc, getDoc, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
@@ -11,16 +8,12 @@ import DescriptionIcon from '@mui/icons-material/Description'; // For resume lin
 import DashboardLayout from '../components/dashboard/DashboardLayout';
 import ProfileHeader from '../components/profile/ProfileHeader';
 
-// Helper function to display text or a fallback message
 const displayText = (text, fallback = '(Not specified)') => {
   // Return fallback if text is null, undefined, or an empty string after trimming
   return text?.trim() ? text : fallback;
 };
 
-
-// --- Re-use Date Formatting Helper ---
 const formatExperienceDate = (timestamp) => {
-    // Make sure timestamp is valid and has toDate method (Firestore Timestamp)
     if (!timestamp || typeof timestamp.toDate !== 'function') return 'N/A';
     try {
         // Format as 'Mon YYYY' e.g., "Apr 2023"
@@ -30,10 +23,9 @@ const formatExperienceDate = (timestamp) => {
         return 'Invalid Date';
     }
 };
-// --- End Date Helper ---
 
 
-// --- TabPanel Component (Needs to be defined here or imported) ---
+// --- TabPanel Component ---
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
   return (
@@ -53,7 +45,7 @@ function TabPanel(props) {
   );
 }
 
-// --- a11yProps function (Needs to be defined here or imported) ---
+// --- a11yProps function  ---
 function a11yProps(index) {
   return {
     id: `profile-tab-${index}`,
@@ -64,7 +56,7 @@ function a11yProps(index) {
 
 
 const UserProfilePage = () => {
-  const { userId } = useParams(); // Get the userId from the URL parameter
+  const { userId } = useParams();
   const navigate = useNavigate();
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -84,7 +76,7 @@ const UserProfilePage = () => {
    const [enrolledCoursesError, setEnrolledCoursesError] = useState(null);
    const [enrolledCoursesFetched, setEnrolledCoursesFetched] = useState(false);
 
-   // --- State for Detailed Experiences (NEW) ---
+   // --- State for Detailed Experiences ---
    const [detailedExperiences, setDetailedExperiences] = useState([]);
    const [loadingDetailedExperiences, setLoadingDetailedExperiences] = useState(false);
    const [detailedExperiencesError, setDetailedExperiencesError] = useState(null);
@@ -96,11 +88,10 @@ const UserProfilePage = () => {
     const fetchUserProfile = async () => {
         if (!userId) { setError("No user ID provided."); setLoading(false); return; }
         setLoading(true); setError(null); setProfileData(null);
-        // Reset all fetched states on user change
         setOfferedCourses([]); setOfferedCoursesFetched(false); setOfferedCoursesError(null);
         setEnrolledCourses([]); setEnrolledCoursesFetched(false); setEnrolledCoursesError(null);
-        setDetailedExperiences([]); setDetailedExperiencesFetched(false); setDetailedExperiencesError(null); // Reset detailed experiences
-        setTabValue(0); // Reset to first tab
+        setDetailedExperiences([]); setDetailedExperiencesFetched(false); setDetailedExperiencesError(null); 
+        setTabValue(0); 
 
         try {
             const userDocRef = doc(db, 'users', userId);
@@ -117,14 +108,13 @@ const UserProfilePage = () => {
 
   // --- Combined useEffect for fetching tab-specific data ---
   useEffect(() => {
-    if (!profileData) return; // Need profile data first
+    if (!profileData) return;
 
     const currentRole = profileData.role;
     const currentUserId = profileData.id;
 
     // Fetch Professor Offered Courses (Tab 2)
     if (tabValue === 2 && currentRole === 'professor' && !offeredCoursesFetched && !loadingOfferedCourses) {
-        // ... (fetching logic for offered courses - keep as is) ...
          const fetchOfferedCourses = async () => {
             setLoadingOfferedCourses(true); setOfferedCoursesError(null);
             try {
@@ -140,7 +130,6 @@ const UserProfilePage = () => {
     }
     // Fetch Student Enrolled Courses (Tab 2)
     else if (tabValue === 2 && currentRole === 'student' && !enrolledCoursesFetched && !loadingEnrolledCourses) {
-        // ... (fetching logic for enrolled courses - keep as is) ...
         const fetchEnrolledCourses = async () => {
             setLoadingEnrolledCourses(true); setEnrolledCoursesError(null);
             try {
@@ -154,7 +143,7 @@ const UserProfilePage = () => {
        };
        fetchEnrolledCourses();
     }
-    // --- Fetch Detailed Experiences (Tab 1 - NEW LOGIC) ---
+    // --- Fetch Detailed Experiences (Tab 1 ) ---
     else if (tabValue === 1 && !detailedExperiencesFetched && !loadingDetailedExperiences) {
         const fetchDetailedExperiences = async () => {
             setLoadingDetailedExperiences(true);
@@ -162,16 +151,14 @@ const UserProfilePage = () => {
             console.log(`Workspaceing detailed experiences for user: ${currentUserId}`);
             try {
                 const experiencesCollectionRef = collection(db, 'users', currentUserId, 'experiences');
-                // Order by start date descending for consistency
                 const q = query(experiencesCollectionRef, orderBy('startDate', 'desc'));
-                const querySnapshot = await getDocs(q); // Use getDocs for public view
+                const querySnapshot = await getDocs(q); 
                 const fetchedExperiences = querySnapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data()
                 }));
                 setDetailedExperiences(fetchedExperiences);
             } catch (err) {
-                // Firestore permission errors might occur if rules aren't set correctly
                 console.error("Error fetching detailed experiences:", err);
                 if (err.code === 'permission-denied') {
                      setDetailedExperiencesError("Cannot load experiences due to permissions.");
@@ -180,7 +167,7 @@ const UserProfilePage = () => {
                 }
             } finally {
                 setLoadingDetailedExperiences(false);
-                setDetailedExperiencesFetched(true); // Mark as fetched (even if error occurred)
+                setDetailedExperiencesFetched(true); 
             }
         };
         fetchDetailedExperiences();
@@ -205,17 +192,8 @@ const UserProfilePage = () => {
     }, {});
 };
 const groupedDetailedExperiences = groupExperiencesByType(detailedExperiences);
-// --- End Grouping Logic ---
-
-
-  // // Determine role-specific info for display
-  // const roleInfo = profileData?.role === 'student'
-  //   ? `${profileData?.major || 'Undecided Major'} - ${profileData?.year || 'Unknown Year'}`
-  //   : `${profileData?.department || 'No Department'}`;
-
 
   return (
-    // Using DashboardLayout, passing null to hide sign out for public view
     <DashboardLayout>
         <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
             {/* Back Button */}
@@ -240,7 +218,6 @@ const groupedDetailedExperiences = groupExperiencesByType(detailedExperiences);
                     coverLink={profileData.coverLink || null}
                     photoLink={profileData.photoLink || null}
                     professorName={profileData.name}
-                    // Disable editing controls
                     onEditCover={() => {}} onViewCover={() => {}}
                     onEditPhoto={() => {}} onViewPhoto={() => {}}
                 />
@@ -251,8 +228,6 @@ const groupedDetailedExperiences = groupExperiencesByType(detailedExperiences);
                     <Tab label="Profile" {...a11yProps(0)} />
                     {/* Tab 1: Always Show */}
                     <Tab label="Experience & Research" {...a11yProps(1)} />
-
-                    {/* +++ CORRECTED: Conditionally Render Tab 2 based on ROLE +++ */}
                     {/* Show "Courses Offered" tab for professors */}
                     {profileData.role === 'professor' && (
                         <Tab label="Courses Offered" {...a11yProps(2)} />
@@ -261,8 +236,6 @@ const groupedDetailedExperiences = groupExperiencesByType(detailedExperiences);
                     {profileData.role === 'student' && ( // This block renders the tab for students
                         <Tab label="Courses Enrolled" {...a11yProps(2)} />
                     )}
-                     {/* +++ End Correction +++ */}
-
                 </Tabs>
                 </Box>
 
@@ -278,8 +251,6 @@ const groupedDetailedExperiences = groupExperiencesByType(detailedExperiences);
                           color={profileData.role === 'student' ? 'secondary' : 'primary'}
                           sx={{ mb: 2 }}
                       />
-
-                        {/* === Conditional Rendering based on Role === */}
 
                         {/* --- Professor Specific Fields --- */}
                         {profileData.role === 'professor' && (
@@ -353,21 +324,20 @@ const groupedDetailedExperiences = groupExperiencesByType(detailedExperiences);
                             {profileData.role === 'professor' ? 'Experience & Research Keywords' : 'Experience & Interest Tags'}
                         </Typography>
                         {profileData.experienceTags && profileData.experienceTags.length > 0 ? (
-                            <Stack direction="row" flexWrap="wrap" spacing={1} useFlexGap sx={{ mb: 4 }}> {/* Added margin bottom */}
+                            <Stack direction="row" flexWrap="wrap" spacing={1} useFlexGap sx={{ mb: 4 }}> 
                                 {profileData.experienceTags.map((tag) => (
                                     <Chip key={tag} label={tag} size="small" />
                                 ))}
                             </Stack>
                         ) : (
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}> {/* Added margin bottom */}
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
                                 No tags specified yet.
                             </Typography>
                         )}
-                        {/* --- End Tags Display --- */}
 
-                        <Divider sx={{ mb: 3 }} /> {/* Separator */}
+                        <Divider sx={{ mb: 3 }} />
 
-                            {/* --- Detailed Experiences Display (NEW) --- */}
+                            {/* --- Detailed Experiences Display --- */}
                         {loadingDetailedExperiences && <Box sx={{ display: 'flex', justifyContent: 'center', my: 3}}><CircularProgress size={24} /></Box>}
                         {detailedExperiencesError && !loadingDetailedExperiences && <Alert severity="error">{detailedExperiencesError}</Alert>}
                         {!loadingDetailedExperiences && !detailedExperiencesError && detailedExperiences.length === 0 && detailedExperiencesFetched && (
@@ -376,7 +346,7 @@ const groupedDetailedExperiences = groupExperiencesByType(detailedExperiences);
                             </Typography>
                         )}
 
-                        {/* Render Experience Groups */}
+                        {/* Experience Groups */}
                         {!loadingDetailedExperiences && !detailedExperiencesError && detailedExperiences.length > 0 && (
                             <Stack spacing={4} sx={{ mt: 2 }}>
                             {Object.entries(groupedDetailedExperiences).map(([type, exps]) => (
@@ -415,7 +385,7 @@ const groupedDetailedExperiences = groupExperiencesByType(detailedExperiences);
                                 ))}
                             </Stack>
                         )}
-                            {/* --- End Detailed Experiences Display --- */}
+                           
                     </TabPanel>
 
 
@@ -436,7 +406,6 @@ const groupedDetailedExperiences = groupExperiencesByType(detailedExperiences);
                                 )}
                                 {/* Course List Display */}
                                 {!loadingOfferedCourses && !offeredCoursesError && offeredCourses.length > 0 && (
-                                    // This Stack and map needs to be INSIDE the conditional rendering braces
                                     <Stack spacing={2}>
                                         {offeredCourses.map(course => (
                                             <Paper key={course.id} variant="outlined" sx={{ p: 1.5 }}>
@@ -470,7 +439,6 @@ const groupedDetailedExperiences = groupExperiencesByType(detailedExperiences);
                                 )}
                                 {/* Course List Display */}
                                 {!loadingEnrolledCourses && !enrolledCoursesError && enrolledCourses.length > 0 && (
-                                    // This Stack and map needs to be INSIDE the conditional rendering braces
                                     <Stack spacing={2}>
                                         {enrolledCourses.map(course => (
                                             <Paper key={course.id} variant="outlined" sx={{ p: 1.5 }}>
@@ -482,7 +450,7 @@ const groupedDetailedExperiences = groupExperiencesByType(detailedExperiences);
                                                 {course.instructorName && (
                                                     <Typography variant="body2" color="text.secondary">Instructor: {course.instructorName}</Typography>
                                                 )}
-                                                {course.grade && ( // Only display if grade exists and is not empty
+                                                {course.grade && ( 
                                                         <Typography variant="body2" color="text.secondary">Grade: {course.grade}</Typography>
                                                     )}
                                             </Paper>
@@ -493,11 +461,10 @@ const groupedDetailedExperiences = groupExperiencesByType(detailedExperiences);
                         )}
                     </TabPanel>
                     )}
-                          {/* You could add placeholders here later for Courses/Interests fetched separately */}
+                         
                 </Paper>
             )}
 
-            {/* Fallback if profileData is somehow null after loading without error */}
             {!loading && !error && !profileData && (
                   <Typography sx={{ textAlign: 'center', mt: 5 }}>Profile data could not be loaded.</Typography>
             )}

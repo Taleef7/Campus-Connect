@@ -1,6 +1,4 @@
-/* eslint-disable no-unused-vars */
-// frontend/src/pages/StudentAuth.jsx
-import React, { useState } from 'react'; // Import React
+import React, { useState } from 'react';
 import { Box, Typography, Button, TextField, Alert, CircularProgress  } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { auth, db } from '../firebase';
@@ -65,11 +63,10 @@ const StudentAuth = () => {
             setSnackbarSeverity('warning');
             setSnackbarOpen(true);
         }
-        // navigate('/student-dashboard');
       } else {
         // --- LOGIN LOGIC ---
         const userCredential = await signInWithEmailAndPassword(auth, email, password); // Get credential on login too
-        const user = userCredential.user; // Get user from credential
+        const user = userCredential.user;
 
 
         if (user) {
@@ -94,10 +91,9 @@ const StudentAuth = () => {
                       setSnackbarOpen(true);
                   }
                   await signOut(auth); 
-                  // --- END RESEND ---
               }
             } else {
-                await signOut(auth); // Sign out if role is wrong or doc missing
+                await signOut(auth);
                 setSnackbarMessage('Access denied. Please use the correct portal.');
                 setSnackbarSeverity('error');
                 setSnackbarOpen(true);
@@ -110,7 +106,6 @@ const StudentAuth = () => {
       }
     } catch (error) {
        console.error("Auth Error:", error);
-       // Provide more user-friendly messages
        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
         setSnackbarMessage('Invalid email or password.');
       } else if (error.code === 'auth/email-already-in-use') {
@@ -138,19 +133,16 @@ const StudentAuth = () => {
         const userSnap = await getDoc(userRef);
 
         if (!userSnap.exists()) {
-          // If user doesn't exist, create them with student role
           await setDoc(userRef, {
-            name, email, major: "", // Default major
+            name, email, major: "", 
             role: "student",
             createdAt: new Date().toISOString(),
           });
            navigate('/student-dashboard');
         } else {
-            // If user exists, check their role
             if (userSnap.data().role === 'student') {
                  navigate('/student-dashboard');
             } else {
-                // If existing user is not a student, sign out and show error
                 await signOut(auth);
                 setSnackbarMessage('Access denied. This account is not registered as a student.');
                 setSnackbarSeverity('error');
@@ -189,10 +181,9 @@ const StudentAuth = () => {
           </>
         )}
         <TextField label="Email" variant="outlined" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
-        {/* Add inputProps to the password field */}
         <TextField
           label="Password" variant="outlined" type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
-          inputProps={{ autoComplete: isSignup ? 'new-password' : 'current-password' }} // Use new-password for signup
+          inputProps={{ autoComplete: isSignup ? 'new-password' : 'current-password' }} 
         />
 
         <Button type="submit" variant="contained" disabled={loading}>
@@ -200,7 +191,7 @@ const StudentAuth = () => {
         </Button>
       </Box>
 
-      <Box sx={{ mt: 2 }}> {/* Wrap Google Login for margin */}
+      <Box sx={{ mt: 2 }}> 
           <GoogleLogin
             onSuccess={handleGoogleLoginSuccess}
             onError={() => { console.error("Google Login Failed"); setSnackbarMessage('Google login failed.');
@@ -217,7 +208,7 @@ const StudentAuth = () => {
       <Button variant="outlined" onClick={() => navigate('/')} sx={{ mt: 2 }}>
         Back to Landing
       </Button>
-      
+
       <SnackbarMessage
         open={snackbarOpen}
         message={snackbarMessage}
