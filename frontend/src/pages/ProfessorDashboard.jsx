@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Box, Typography, Button, Tabs, Tab, Paper, IconButton, TextField, 
-  Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, Avatar 
+  Box, Typography, Button, Tabs, Tab, Paper, CircularProgress, Avatar, Container, 
+  Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Divider, Stack 
 } from '@mui/material';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
@@ -41,7 +41,7 @@ function TabPanel(props) {
       {...other}
     >
       {value === index && (
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ p: 2 }}>
           {children}
         </Box>
       )}
@@ -134,13 +134,14 @@ const ProfessorDashboard = () => {
                 }
             } else {
                 console.error("Firestore document missing for professor:", currentUser.uid);
+                setErrorMsg("Error loading profile data.");
                 signOut(auth).then(() => navigate('/professor-login'));
                 setProfessorData(null);
             }
             setUiLoading(false);
         }, (error) => {
             console.error("Error listening to professor data:", error);
-          
+            setErrorMsg("Failed to load profile in real-time.");
             setProfessorData(null);
             setUiLoading(false);
         });
@@ -466,22 +467,36 @@ const ProfessorDashboard = () => {
 
   // --- Log state right before render ---
   console.log("ProfessorDashboard Rendering:", { loadingOpportunities, opportunitiesCount: opportunities.length });
+  const tabHoverSx = {
+    borderRadius: 1, 
+    '&:hover': {
+        backgroundColor: 'action.hover', 
+    },
+  };
 
   return (
     <DashboardLayout>
-      <Box sx={{ mb: 3, textAlign: 'center' }}>
-         <Typography variant="h4" gutterBottom> Professor Dashboard </Typography>
-         {professorData && ( <Typography variant="h6" color="text.secondary"> Welcome, {professorData.name || 'Professor'}! </Typography> )}
-       </Box>
+       <Container maxWidth="lg" sx={{ mt: 2, mb: 4 }}>
+              <Box sx={{ mb: 5, textAlign: 'center' }}>
+              {professorData && ( <Typography variant="h5" color="text.secondary"> Welcome, {professorData.name || 'Professor'}! </Typography> )}
+              </Box>
 
-      <Paper elevation={3} sx={{ borderRadius: 2, position: 'relative' }}>
-         {isSaving && ( <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}> <CircularProgress /> </Box> )}
+      <Paper elevation={3} sx={{ borderRadius: 3, position: 'relative' }}>
+         {isSaving && (<Box sx={{ /* ... Saving overlay ... */ }}> <CircularProgress /> </Box>)}
 
-        <Tabs value={tabValue} onChange={handleTabChange} variant="fullWidth" aria-label="Professor Dashboard Tabs" textColor="primary" indicatorColor="primary" sx={{ borderBottom: 1, borderColor: 'divider' }} >
-          <Tab label="Profile" {...a11yProps(0)} />
-          <Tab label="Experience and Research" {...a11yProps(1)} />
-          <Tab label="Courses Offered" {...a11yProps(2)} />
-          <Tab label="Opportunities" {...a11yProps(3)} /> 
+        <Tabs
+            value={tabValue}
+            onChange={handleTabChange}
+            variant="fullWidth" 
+            aria-label="Professor Dashboard Tabs"
+            textColor="primary"
+            indicatorColor="primary"
+            sx={{ borderBottom: 1, borderColor: 'divider' }}
+        >
+          <Tab label="Profile" {...a11yProps(0)} sx={tabHoverSx}/>
+          <Tab label="Experience" {...a11yProps(1)} sx={tabHoverSx}/>
+          <Tab label="Courses" {...a11yProps(2)} sx={tabHoverSx}/>
+          <Tab label="Opportunities" {...a11yProps(3)} sx={tabHoverSx}/> 
         </Tabs>
 
         <TabPanel value={tabValue} index={0}>
@@ -513,8 +528,8 @@ const ProfessorDashboard = () => {
         </TabPanel>
         <TabPanel value={tabValue} index={2}> <ProfessorCourses /> </TabPanel>
         <TabPanel value={tabValue} index={3}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                 <Typography variant="h6" gutterBottom>My Posted Opportunities</Typography>
+            <Box sx={{p:2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                 <Typography variant="h5" gutterBottom>My Posted Opportunities</Typography>
                  <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAddOpportunityDialog} disabled={isSaving || isProcessing} > Post New Opportunity </Button>
             </Box>
 
@@ -603,7 +618,7 @@ const ProfessorDashboard = () => {
             <Button onClick={handlePhotoSave} color="primary" variant="contained" disabled={!photoFile || isSaving}>Save</Button>
         </DialogActions>
       </Dialog>
-
+      </Container>
     </DashboardLayout>
   );
 };

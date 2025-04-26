@@ -61,9 +61,9 @@ const OpportunityListItem = ({
 
     return (
         <Paper elevation={2} sx={{ p: 2, mb: 2, borderRadius: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-center', mb: 2 }}>
                 {/* Left side: Title, Type, Interest Chip */}
-                <Box sx={{ mb: 1, mr: 2 }}> {/* Add margin-right */}
+                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}> {/* Add margin-right */}
                     <Typography variant="h6" gutterBottom>{opportunity.title}</Typography>
                     <Chip label={opportunity.type || 'General'} size="small" sx={{ mr: 1, mb: 1 }} />
                     {/* Indicate if interest is enabled */}

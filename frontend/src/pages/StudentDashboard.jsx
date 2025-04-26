@@ -244,25 +244,23 @@ const StudentDashboard = () => {
     if (!user?.uid || !coverFile) return;
     setIsSaving(true);
     const oldPath = studentData?.coverPath;
-    // Use a 'covers' directory in storage
+  
     const newPath = `covers/${user.uid}/${Date.now()}_${coverFile.name}`;
     try {
       const docRef = doc(db, 'users', user.uid);
-      // Delete old cover if it exists
+    
       if (oldPath) {
         const oldRef = ref(storage, oldPath);
         await deleteObject(oldRef).catch(err => console.warn("Old cover delete failed:", err));
       }
-      // Upload new cover
+    
       const storageRef = ref(storage, newPath);
       await uploadBytes(storageRef, coverFile);
       const downloadURL = await getDownloadURL(storageRef);
-      // Update Firestore document
+    
       await updateDoc(docRef, { coverLink: downloadURL, coverPath: newPath });
-      // Update local state (optional if using realtime listener, but good for immediate feedback)
       // setStudentData((prev) => ({ ...prev, coverLink: downloadURL, coverPath: newPath }));
       setEditCoverMode(false); setCoverFile(null);
-      // Add Snackbar confirmation if you have it integrated
       // showSnackbar("Cover photo updated!", "success");
     } catch (error) {
       console.error('Error uploading cover photo:', error);
@@ -281,9 +279,8 @@ const StudentDashboard = () => {
       const docRef = doc(db, 'users', user.uid);
       const storageRef = ref(storage, pathToDelete);
       await deleteObject(storageRef);
-      // Update Firestore document
+      
       await updateDoc(docRef, { coverLink: '', coverPath: '' });
-      // Update local state
       // setStudentData((prev) => ({ ...prev, coverLink: '', coverPath: '' }));
       setEditCoverMode(false); setViewCoverMode(false); setCoverFile(null);
        // showSnackbar("Cover photo deleted.", "success");
@@ -303,8 +300,7 @@ const StudentDashboard = () => {
    }
 
   if (!studentData) {
-    // This case might occur briefly or if there was an error caught above
-    // You might want a more specific error message or redirect here too
+
      return ( <DashboardLayout><Typography>Error loading data or unauthorized.</Typography></DashboardLayout>);
    }
 
@@ -355,10 +351,10 @@ const StudentDashboard = () => {
                     <TabPanel value={tabValue} index={0}>
                         <ProfileHeader
                            photoLink={photoLink}
-                           coverLink={studentData?.coverLink || null} // Pass cover link
+                           coverLink={studentData?.coverLink || null} 
                            professorName={studentData?.name}
-                           onEditCover={handleTriggerEditCover}   // Pass cover edit handler
-                           onViewCover={handleTriggerViewCover}   // Pass cover view handler
+                           onEditCover={handleTriggerEditCover}  
+                           onViewCover={handleTriggerViewCover}
                            onEditPhoto={handleTriggerEditPhoto}
                            onViewPhoto={handleTriggerViewPhoto}
                         />

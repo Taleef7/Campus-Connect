@@ -225,7 +225,7 @@ const ProfessorExperienceResearch = ({ professorData }) => {
 
     // --- Render ---
     return (
-        <Box sx={{ mt: 4 }}> {/* Add some margin if needed */}
+        <Box sx={{p:1, mt: 4 }}> {/* Add some margin if needed */}
             {/* --- Tags Section --- */}
             <Typography variant="h5" gutterBottom>
                 My Experience & Research Areas {/* Slightly different title? */}
