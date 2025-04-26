@@ -1,8 +1,6 @@
-/* eslint-disable no-unused-vars */
-// frontend/src/pages/DirectoryPage.jsx
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Typography, CircularProgress, Container, Grid2, Paper, Button } from '@mui/material'; // Use Grid v2 (no import needed)
+import { Box, Typography, CircularProgress, Container, Grid2, Paper, Button } from '@mui/material'; 
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { signOut } from 'firebase/auth';
@@ -10,10 +8,6 @@ import UserCard from '../components/directory/UserCard';
 import SearchBar from '../components/directory/SearchBar';
 import FilterControls from '../components/directory/FilterControls';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
-
-// TabPanel and a11yProps might not be needed here if not using tabs directly on this page
-// function TabPanel(props) { ... }
-// function a11yProps(index) { ... }
 
 const DirectoryPage = () => {
   const [allUsers, setAllUsers] = useState([]);
@@ -31,7 +25,7 @@ const DirectoryPage = () => {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
-      setCurrentUserRole(null); // Reset role on fetch start
+      setCurrentUserRole(null);
       const currentUser = auth.currentUser;
 
       if (!currentUser) {
@@ -39,8 +33,6 @@ const DirectoryPage = () => {
           setLoading(false);
           return;
       }
-
-      // Fetch current user's role first
       let role = null;
       try {
           console.log("DirectoryPage: Fetching role for user:", currentUser.uid);
@@ -48,8 +40,8 @@ const DirectoryPage = () => {
           const userDocSnap = await getDoc(userDocRef);
           if (userDocSnap.exists()) {
               role = userDocSnap.data().role;
-              console.log("DirectoryPage: Fetched role:", role); // Log fetched role
-              setCurrentUserRole(role); // Set the role state
+              console.log("DirectoryPage: Fetched role:", role);
+              setCurrentUserRole(role);
           } else { throw new Error("Current user document not found."); }
       } catch(err) {
            console.error("Error fetching current user role:", err);
@@ -57,8 +49,7 @@ const DirectoryPage = () => {
            setLoading(false);
            return;
       }
-
-      // Fetch all users for the directory (only if role fetch succeeded)
+      // Fetch all users for the directory
       try {
         console.log("DirectoryPage: Fetching all users...");
         const usersCollectionRef = collection(db, 'users');
@@ -73,7 +64,7 @@ const DirectoryPage = () => {
          if (err.code === 'permission-denied') { setError("You don't have permission to view the directory."); }
          else { setError("Failed to load user data. Please try again later."); }
       } finally {
-        setLoading(false); // Stop loading only after everything is done or errored
+        setLoading(false);
       }
     };
 
@@ -160,13 +151,13 @@ const DirectoryPage = () => {
                  {filteredUsers.length > 0 ? (
                     filteredUsers.map(user => (
                        // --- Corrected Grid v2 Item Usage ---
-                       <Grid2 key={user.id} size={{ xs: 12, sm: 6, md: 4 }}> {/* Use size prop */}
+                       <Grid2 key={user.id} size={{ xs: 12, sm: 6, md: 4 }}> 
                            <UserCard user={user} />
                         </Grid2>
                     ))
                  ) : (
                      // --- Corrected Grid v2 Item Usage ---
-                    <Grid2 size={12}> {/* Use size prop */}
+                    <Grid2 size={12}>
                         <Typography sx={{ textAlign: 'center', mt: 5, color: 'text.secondary' }}>
                              {searchTerm || selectedRole || selectedDepartment || selectedMajor || selectedYear
                               ? `No users found matching the current criteria.`

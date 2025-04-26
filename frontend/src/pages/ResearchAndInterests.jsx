@@ -19,7 +19,6 @@ const ProfessorResearch = () => {
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
-  // ✅ Auth listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
@@ -31,7 +30,6 @@ const ProfessorResearch = () => {
     return () => unsubscribe();
   }, []);
 
-  // ✅ Fetch data when user is set
   useEffect(() => {
     if (!user) return;
 
@@ -50,13 +48,11 @@ const ProfessorResearch = () => {
     fetchResearch();
   }, [user]);
 
-  // ✅ Secure input change
   const handleChange = (e) => {
     const { name, value } = e.target;
     setNewItem(prev => ({ ...prev, [name]: value }));
   };
 
-  // ✅ Secure add/update
   const handleAddOrUpdate = async () => {
     if (!user) {
       alert("You must be signed in.");
@@ -96,7 +92,6 @@ const ProfessorResearch = () => {
     }
   };
 
-  // ✅ Secure delete
   const handleDelete = async (id) => {
     if (!user) return;
     try {
@@ -118,7 +113,6 @@ const ProfessorResearch = () => {
     setDialogOpen(true);
   };
 
-  // ✅ Not signed in
   if (!user) {
     return (
       <Box>
