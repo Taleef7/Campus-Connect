@@ -1,70 +1,77 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { Avatar, Box, Button, Paper } from '@mui/material';
-import { updateDoc, doc, onSnapshot } from 'firebase/firestore';
-import { db } from '../../firebase';
 
-const ProfileHeader = ({ user }) => {
-  const [professorData, setProfessorData] = useState(null);
-  const fileInputRef = useRef(null);
+import React, { useEffect, useState } from 'react';
+import { Avatar, Box, Button, Paper } from '@mui/material';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { updateDoc, doc } from 'firebase/firestore';
+import { app, db } from '../../firebase';
+
+const storage = getStorage(app);
+
+const ProfileHeader = ({ professorData, user }) => {
+  const [avatarUrl, setAvatarUrl] = useState(professorData?.photoLink || '');
+  const [coverUrl, setCoverUrl] = useState(professorData?.coverLink || '');
 
   useEffect(() => {
-    if (!user?.uid) return;
+    setAvatarUrl(professorData?.photoLink || '');
+    setCoverUrl(professorData?.coverLink || '');
+  }, [professorData]);
 
-    const unsub = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
-      if (docSnap.exists()) {
-        setProfessorData(docSnap.data());
-      }
-    });
-
-    return () => unsub(); // cleanup on unmount
-  }, [user?.uid]);
-
-  const uploadProfilePicture = async (e) => {
+  const uploadImage = async (e, type) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64Data = reader.result;
+    const path = `${type}/${user.uid}`;
+    const fileRef = ref(storage, path);
+    await uploadBytes(fileRef, file);
+    const downloadURL = await getDownloadURL(fileRef);
+    const field = type === 'profilePics' ? 'photoLink' : 'coverLink';
+    await updateDoc(doc(db, 'users', user.uid), { [field]: downloadURL });
 
-      await updateDoc(doc(db, 'users', user.uid), {
-        photoLink: base64Data
-      });
-    };
-    reader.readAsDataURL(file);
+    type === 'profilePics' ? setAvatarUrl(downloadURL) : setCoverUrl(downloadURL);
   };
-
-  const handleEditClick = () => {
-    fileInputRef.current.click();
-  };
-
-  if (!professorData) return null; // or show loader
 
   return (
     <Paper elevation={3} sx={{ width: '100%', p: 3, mb: 3, borderRadius: 4, textAlign: 'center', position: 'relative' }}>
       <Box sx={{ position: 'relative', display: 'inline-block' }}>
         <Avatar
-          src={professorData.photoLink}
+          src={avatarUrl}
           sx={{ width: 100, height: 100, mx: 'auto', mb: 1 }}
         />
         <input
           type="file"
-          accept="image/*"
-          ref={fileInputRef}
+          id="profile-upload"
           hidden
-          onChange={uploadProfilePicture}
+          accept="image/*"
+          onChange={(e) => uploadImage(e, 'profilePics')}
         />
         <Button
           size="small"
           sx={{ position: 'absolute', bottom: 0, right: -10, fontSize: 10 }}
-          onClick={handleEditClick}
+          onClick={() => document.getElementById('profile-upload').click()}
         >
           ✏️
         </Button>
       </Box>
 
+      <Box sx={{ position: 'absolute', top: 10, right: 10 }}>
+        <input
+          type="file"
+          id="cover-upload"
+          hidden
+          accept="image/*"
+          onChange={(e) => uploadImage(e, 'coverPics')}
+        />
+        <Button
+          size="small"
+          sx={{ fontSize: 10 }}
+          onClick={() => document.getElementById('cover-upload').click()}
+        >
+          🖼️
+        </Button>
+      </Box>
+
       <Box mt={2}>
-        <h3 style={{ margin: 0 }}>{professorData.name}</h3>
+        <h3 style={{ margin: 0 }}>{professorData?.name}</h3>
         <p style={{ fontSize: '0.9rem', color: '#777' }}>Professor</p>
       </Box>
     </Paper>

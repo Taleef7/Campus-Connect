@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Paper, Typography, Button, Box, Dialog, DialogTitle,
@@ -5,7 +6,7 @@ import {
 } from '@mui/material';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { updateDoc, doc } from 'firebase/firestore';
-import { app, db, auth } from '../../firebase';
+import { app, db } from '../../firebase';
 
 const storage = getStorage(app);
 
@@ -51,24 +52,13 @@ const ProfileInfoSection = ({ professorData, user }) => {
 
   const handleResumeUpload = async (e) => {
     const file = e.target.files[0];
-    if (!file || !user?.uid || !professorData?.id) return;
-
-    try {
-      const storageRef = ref(storage, `resumes/${user.uid}/${file.name}`);
-      await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(storageRef);
-
-      await updateDoc(doc(db, 'users', professorData.id), {
-        resumeLink: downloadURL,
-        resumePath: storageRef.fullPath,
-      });
-
+    if (file) {
+      const fileRef = ref(storage, `resumes/${user.uid}.pdf`);
+      await uploadBytes(fileRef, file);
+      const url = await getDownloadURL(fileRef);
+      await updateDoc(doc(db, 'users', user.uid), { resumeLink: url });
       setResumeUploaded(true);
-      window.location.reload(); // To reflect changes immediately
-    } catch (err) {
-      console.error('Resume upload failed:', err);
     }
-
     setMenuAnchor(null);
   };
 
@@ -98,16 +88,8 @@ const ProfileInfoSection = ({ professorData, user }) => {
         <Button
           variant="outlined"
           size="small"
-          onClick={(e) => setMenuAnchor(e.currentTarget)}
-          sx={{
-            borderRadius: '20px',
-            color: '#c0a060',
-            borderColor: '#e6dbc7',
-            fontWeight: 600,
-            textTransform: 'none',
-            justifyContent: 'center',
-            px: 2
-          }}
+          onMouseEnter={(e) => setMenuAnchor(e.currentTarget)}
+          onMouseLeave={() => setMenuAnchor(null)}
         >
           {resumeUploaded ? 'Resume' : 'Upload Resume'}
         </Button>
