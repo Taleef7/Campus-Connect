@@ -1,11 +1,14 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
 // frontend/src/components/opportunities/OpportunityListItem.jsx
-import { Paper, Box, Typography, Chip, IconButton, Button, Divider } from '@mui/material';
+import { Paper, Box, Typography, Chip, IconButton, Button, Divider, CircularProgress } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import GroupIcon from '@mui/icons-material/Group';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline'; // Import an icon for the student button
 import HighlightOffIcon from '@mui/icons-material/HighlightOff'; // Import an icon for remove interest
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'; // Icon for Mark Interest
+import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled'; // Icon for deadline passed
 import { Timestamp } from 'firebase/firestore';
 
 // Helper function to format Firestore Timestamps
@@ -29,18 +32,19 @@ const OpportunityListItem = ({
     isProcessingInterest, // <-- Accept the new prop // <-- Handler function for student marking interest
     isAlreadyInterested, // <-- New prop
     onRemoveInterest, // <-- New handler prop
-    isProcessingRemoval // <-- New prop to disable remove button during processing
+    isProcessingRemoval, // <-- New prop to disable remove button during processing
+    deadlinePassed // <<< --- Accept the new prop ---
 }) => {
 
     const isProfessorView = viewMode === 'professor';
     const isStudentView = viewMode === 'student';
 
-    // Placeholder handler - the real logic will be in the parent component (OpportunityFeed)
+    // Modify handler to pass the full opportunity object
     const handleInterestClick = () => {
-        console.log(`Student interested in opportunity: ${opportunity.id}, professor: ${opportunity.professorId}`);
+        console.log(`Student interested in opportunity: ${opportunity.id}`);
         if (onMarkInterest) {
-            // Pass the necessary IDs up to the parent component's handler
-            onMarkInterest(opportunity.id, opportunity.professorId);
+            // Pass the entire opportunity object up, as the handler now expects it
+            onMarkInterest(opportunity); // <<< --- MODIFIED ---
         }
     };
 
@@ -53,14 +57,28 @@ const OpportunityListItem = ({
         }
     };
 
+    const deadlineString = formatDate(opportunity.deadline);
+
     return (
         <Paper elevation={2} sx={{ p: 2, mb: 2, borderRadius: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                 {/* Left side: Title, Type, Interest Chip */}
-                <Box sx={{ mb: 1 }}>
+                <Box sx={{ mb: 1, mr: 2 }}> {/* Add margin-right */}
                     <Typography variant="h6" gutterBottom>{opportunity.title}</Typography>
                     <Chip label={opportunity.type || 'General'} size="small" sx={{ mr: 1, mb: 1 }} />
-                    {opportunity.allowInterest && <Chip label="Interest Enabled" size="small" color="success" variant="outlined" sx={{ mb: 1 }} />}
+                    {/* Indicate if interest is enabled */}
+                    {opportunity.allowInterest && !isStudentView && <Chip label="Interest Enabled" size="small" color="success" variant="outlined" sx={{ mb: 1 }} />}
+                     {/* Indicate if deadline passed (only for students when interest allowed) */}
+                     {isStudentView && opportunity.allowInterest && deadlinePassed && (
+                        <Chip
+                            icon={<AccessTimeFilledIcon fontSize='small'/>}
+                            label="Deadline Passed"
+                            size="small"
+                            color="error"
+                            variant="outlined"
+                            sx={{ mb: 1 }}
+                         />
+                     )}
                 </Box>
 
                 {/* Right side: Controls Container */}
@@ -80,52 +98,63 @@ const OpportunityListItem = ({
                         </>
                     )}
 
-                    {/* Student Buttons: Render based on interest status */}
+                    {/* Student Buttons */}
                     {isStudentView && opportunity.allowInterest && (
-                        <> {/* Use Fragment to group student buttons */}
-                            {!isAlreadyInterested && onMarkInterest && ( // Show "I'm Interested" only if NOT already interested
+                        <>
+                             {/* Show "I'm Interested" only if NOT already interested */}
+                            {!isAlreadyInterested && (
                                 <Button
                                     variant="contained"
                                     size="small"
-                                    startIcon={<CheckCircleOutlineIcon />}
+                                    color="primary" // Use theme primary
+                                    startIcon={isProcessingInterest ? <CircularProgress size={16} color="inherit"/> : <FavoriteBorderIcon fontSize='small'/>}
                                     onClick={handleInterestClick}
-                                    disabled={isProcessingInterest}
-                                    sx={{ whiteSpace: 'nowrap' }}
+                                     // --- Disable button if processing OR deadline passed ---
+                                    disabled={isProcessingInterest || deadlinePassed}
+                                     // --- End disable change ---
+                                    sx={{ whiteSpace: 'nowrap', textTransform: 'none' }}
                                 >
-                                    {isProcessingInterest ? 'Processing...' : "I'm Interested"}
+                                    {isProcessingInterest ? 'Processing...' : "Mark Interest"}
                                 </Button>
-                            )}
-                            {isAlreadyInterested && onRemoveInterest && ( // Show "Remove Interest" only IF already interested
+                             )}
+                             {/* Show "Remove Interest" only IF already interested */}
+                            {isAlreadyInterested && (
                                 <Button
-                                    variant="outlined" // Different style for remove
+                                    variant="outlined"
                                     size="small"
-                                    color="error" // Use error color
+                                    color="error"
                                     startIcon={<HighlightOffIcon />}
                                     onClick={handleRemoveInterestClick}
-                                    disabled={isProcessingRemoval} // Use separate processing state
-                                    sx={{ whiteSpace: 'nowrap' }}
+                                    disabled={isProcessingRemoval}
+                                    sx={{ whiteSpace: 'nowrap', textTransform: 'none' }}
                                 >
                                     {isProcessingRemoval ? 'Removing...' : "Remove Interest"}
                                 </Button>
-                            )}
-                         </>
-                    )}
+                             )}
+                        </>
+                     )}
+                     {/* Show message if interest not allowed */}
+                      {isStudentView && !opportunity.allowInterest && (
+                            <Chip label="Interest not enabled" size="small" disabled />
+                      )}
                 </Box>
             </Box>
-            <Divider sx={{ my: 1 }} />
-            {/* Description and Dates */}
-            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mb: 1 }}>
+            <Divider sx={{ my: 1.5 }} /> {/* Increase divider margin */}
+            {/* Description */}
+            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mb: 1, overflowWrap: 'break-word' }}> {/* Added overflowWrap */}
                 {opportunity.description}
             </Typography>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1, flexWrap: 'wrap', gap: 1 }}>
-                <Typography variant="caption" color="text.secondary">
-                    Posted: {formatDate(opportunity.createdAt)} by {opportunity.professorName || 'Professor'}
-                </Typography>
-                {opportunity.deadline && (
-                    <Typography variant="caption" color="error">
-                        Deadline: {formatDate(opportunity.deadline)}
-                    </Typography>
-                )}
+            {/* Footer Info */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1.5, flexWrap: 'wrap', gap: 1 }}> {/* Increase top margin */}
+                 <Typography variant="caption" color="text.secondary">
+                     Posted: {formatDate(opportunity.createdAt)} {opportunity.professorName ? `by ${opportunity.professorName}` : ''}
+                 </Typography>
+                  {/* Display Deadline - don't make it error color here, rely on chip above */}
+                  {deadlineString && (
+                      <Typography variant="caption" color="text.secondary">
+                          Deadline: {deadlineString}
+                      </Typography>
+                  )}
             </Box>
         </Paper>
     );

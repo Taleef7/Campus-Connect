@@ -171,11 +171,11 @@ const StudentCoursesEnrolled = ({ studentData }) => { // Accept studentData if n
   }
 
   return (
-    <Box>
+    <Box sx={{ p: 2 }}>
       {/* Title */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 5 }}>
           <Typography variant="h5" gutterBottom component="div"> {/* Changed variant */}
-            My Courses Enrolled
+            My Courses
           </Typography>
           {/* Add Course Button */}
           <Button

@@ -136,12 +136,12 @@ const DirectoryPage = () => {
   // --- End Log ---
 
   if (loading || !currentUserRole) {
-     return ( <DashboardLayout handleSignOut={handleSignOut} dashboardPath={dashboardPath}> <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}> <CircularProgress /> </Box> </DashboardLayout> );
+     return ( <DashboardLayout> <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}> <CircularProgress /> </Box> </DashboardLayout> );
    }
 
   return (
     // Pass the determined dashboardPath and handleSignOut to the layout
-    <DashboardLayout handleSignOut={handleSignOut} dashboardPath={dashboardPath}>
+    <DashboardLayout>
        <Container maxWidth="lg" sx={{ mt: 3, mb: 3 }}>
             <Typography variant="h4" gutterBottom component="h1"> User Directory & Search </Typography>
            <Paper elevation={1} sx={{ mb: 2, p: 3, borderRadius: 3 }}>

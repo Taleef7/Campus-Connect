@@ -49,39 +49,29 @@ const EditableTextArea = ({
     // Container remains largely the same
     <Box sx={{ width: '100%', position: 'relative', ...containerSx }}>
       {!isEditing ? (
-        // --- MODIFIED Display Mode ---
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}> {/* Align items start for label */}
-            <Box sx={{ flexGrow: 1 }}> {/* Box to hold label and value */}
-                {/* Display Label */}
-                <Typography
-                    variant="caption" // Smaller variant for label
-                    component="div" // Use div to prevent potential nesting issues
-                    sx={{ color: 'text.secondary', mb: 0.25 }} // Style as needed
-                >
+        // Display Mode
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+            <Box sx={{ flexGrow: 1 }}>
+                <Typography variant="caption" component="div" sx={{ color: 'text.secondary', mb: 0.25 }}>
                     {label}
                 </Typography>
-                {/* Display Value */}
                 <Typography
-                    variant={typographyVariant}
+                    variant={typographyVariant} // This variant is passed as a prop
                     sx={{
-                        whiteSpace: 'pre-wrap',    // Keep line breaks
-                        // overflowWrap: 'break-word', // *** ADDED: Fix text overflow ***
-                        wordBreak: 'break-all',      // <<< TRY THIS INSTEAD
+                        whiteSpace: 'pre-wrap',      // Keep line breaks
+                        // --- MODIFY WORD BREAKING ---
+                        // overflowWrap: 'break-word',  // Use this instead of break-all
+                        wordBreak: 'break-word',     // Alternative to overflow-wrap
+                        hyphens: 'auto',             // <<< ADD THIS FOR HYPHENATION
+                        // --- END MODIFICATION ---
                         color: !value ? 'text.secondary' : 'inherit',
-                        minHeight: '20px' // Ensure some min height even if empty
+                        minHeight: '20px'
                     }}
                 >
-                    {value?.trim() || placeholder || emptyText} {/* Show value or placeholder */}
+                    {value?.trim() || placeholder || emptyText}
                 </Typography>
             </Box>
-            {/* Edit Button - aligns to the right */}
-             <IconButton
-                size="small"
-                onClick={handleEditClick}
-                aria-label={`Edit ${label}`}
-                sx={{ mt: 2 }} // Adjust margin if needed based on label size
-                disabled={isSaving}
-            >
+            <IconButton size="small" onClick={handleEditClick} /* ... other props ... */ sx={{ mt: 1 }}>
                  <EditIcon fontSize="small" />
              </IconButton>
         </Box>

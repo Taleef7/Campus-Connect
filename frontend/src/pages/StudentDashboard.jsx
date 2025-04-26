@@ -66,7 +66,10 @@ const StudentDashboard = () => {
   const [editPhotoMode, setEditPhotoMode] = useState(false);
   const [photoFile, setPhotoFile] = useState(null);
   const [viewPhotoMode, setViewPhotoMode] = useState(false);
-  // Note: Students likely don't have cover photos, so we omit cover state/handlers
+  // State for Cover Photo editing
+  const [editCoverMode, setEditCoverMode] = useState(false);
+  const [coverFile, setCoverFile] = useState(null);
+  const [viewCoverMode, setViewCoverMode] = useState(false); // If you want a view dialog
 
   // --- Effects ---
   // --- UPDATED useEffect for Realtime Data ---
@@ -248,16 +251,79 @@ const StudentDashboard = () => {
     finally { setIsSaving(false); }
   };
 
+  // --- Cover Photo Handlers ---
+  const handleTriggerViewCover = () => { if (studentData?.coverLink) { setViewCoverMode(true); } }; // Only view if exists
+  const handleTriggerEditCover = () => { setEditCoverMode(true); setCoverFile(null); setViewCoverMode(false); };
+  const handleCoverFileChange = (e) => { if (e.target.files && e.target.files[0]) { setCoverFile(e.target.files[0]); } };
+  const handleCoverCancel = () => { setEditCoverMode(false); setCoverFile(null); };
+
+  const handleCoverSave = async () => {
+    if (!user?.uid || !coverFile) return;
+    setIsSaving(true);
+    const oldPath = studentData?.coverPath;
+    // Use a 'covers' directory in storage
+    const newPath = `covers/${user.uid}/${Date.now()}_${coverFile.name}`;
+    try {
+      const docRef = doc(db, 'users', user.uid);
+      // Delete old cover if it exists
+      if (oldPath) {
+        const oldRef = ref(storage, oldPath);
+        await deleteObject(oldRef).catch(err => console.warn("Old cover delete failed:", err));
+      }
+      // Upload new cover
+      const storageRef = ref(storage, newPath);
+      await uploadBytes(storageRef, coverFile);
+      const downloadURL = await getDownloadURL(storageRef);
+      // Update Firestore document
+      await updateDoc(docRef, { coverLink: downloadURL, coverPath: newPath });
+      // Update local state (optional if using realtime listener, but good for immediate feedback)
+      // setStudentData((prev) => ({ ...prev, coverLink: downloadURL, coverPath: newPath }));
+      setEditCoverMode(false); setCoverFile(null);
+      // Add Snackbar confirmation if you have it integrated
+      // showSnackbar("Cover photo updated!", "success");
+    } catch (error) {
+      console.error('Error uploading cover photo:', error);
+      alert(`Error uploading cover photo: ${error.message}`); // Replace with Snackbar if integrated
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCoverDelete = async () => {
+    const pathToDelete = studentData?.coverPath;
+    if (!user?.uid || !pathToDelete) return;
+    if (!window.confirm('Are you sure you want to delete the cover photo?')) return; // Keep confirm or use Dialog
+    setIsSaving(true);
+    try {
+      const docRef = doc(db, 'users', user.uid);
+      const storageRef = ref(storage, pathToDelete);
+      await deleteObject(storageRef);
+      // Update Firestore document
+      await updateDoc(docRef, { coverLink: '', coverPath: '' });
+      // Update local state
+      // setStudentData((prev) => ({ ...prev, coverLink: '', coverPath: '' }));
+      setEditCoverMode(false); setViewCoverMode(false); setCoverFile(null);
+       // showSnackbar("Cover photo deleted.", "success");
+    } catch (error) {
+      console.error('Error removing cover photo:', error);
+      alert(`Error removing cover photo: ${error.message}`); // Replace with Snackbar
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  // --- End Cover Photo Handlers ---
+
+
   // --- Render Logic ---
   if (uiLoading) {
-     return ( <DashboardLayout handleSignOut={handleSignOut}> <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}> <CircularProgress /> </Box> </DashboardLayout> );
+     return ( <DashboardLayout> <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}> <CircularProgress /> </Box> </DashboardLayout> );
    }
 
   // Only proceed to render dashboard content if studentData is loaded and role check passed
   if (!studentData) {
     // This case might occur briefly or if there was an error caught above
     // You might want a more specific error message or redirect here too
-     return ( <DashboardLayout handleSignOut={handleSignOut}><Typography>Error loading data or unauthorized.</Typography></DashboardLayout>);
+     return ( <DashboardLayout><Typography>Error loading data or unauthorized.</Typography></DashboardLayout>);
    }
 
   const photoLink = studentData?.photoLink || '';
@@ -275,10 +341,10 @@ const StudentDashboard = () => {
 
 
   return (
-    <DashboardLayout handleSignOut={handleSignOut} dashboardPath='/student-dashboard'>
+    <DashboardLayout>
             {/* --- WRAP CONTENT IN CONTAINER --- */}
-            <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-                <Box sx={{ mb: 3, textAlign: 'center' }}>
+            <Container maxWidth="lg" sx={{ mt: 2, mb: 4 }}>
+                <Box sx={{ mb: 5, textAlign: 'center' }}>
                     {studentData && (<Typography variant="h5" color="text.secondary" gutterBottom> Welcome, {studentData.name || 'Student'}! </Typography>)}
                 </Box>
 
@@ -298,9 +364,9 @@ const StudentDashboard = () => {
                     >
                         {/* Apply hover sx to each Tab */}
                         <Tab label="Profile" {...a11yProps(0)} sx={tabHoverSx} />
-                        <Tab label="Experience and Research" {...a11yProps(1)} sx={tabHoverSx} />
-                        <Tab label="Courses Enrolled" {...a11yProps(2)} sx={tabHoverSx} />
-                        <Tab label="Opportunities Interested In" {...a11yProps(3)} sx={tabHoverSx} />
+                        <Tab label="Experience" {...a11yProps(1)} sx={tabHoverSx} />
+                        <Tab label="Courses" {...a11yProps(2)} sx={tabHoverSx} />
+                        <Tab label="Opportunities" {...a11yProps(3)} sx={tabHoverSx} />
                     </Tabs>
                     {/* --- END TABS --- */}
 
@@ -310,9 +376,10 @@ const StudentDashboard = () => {
                         <ProfileHeader
                            // coverLink={null}
                            photoLink={photoLink}
+                           coverLink={studentData?.coverLink || null} // Pass cover link
                            professorName={studentData?.name}
-                           // onEditCover={() => {}}
-                           // onViewCover={() => {}}
+                           onEditCover={handleTriggerEditCover}   // Pass cover edit handler
+                           onViewCover={handleTriggerViewCover}   // Pass cover view handler
                            onEditPhoto={handleTriggerEditPhoto}
                            onViewPhoto={handleTriggerViewPhoto}
                         />
@@ -362,19 +429,23 @@ const StudentDashboard = () => {
 
                              <Divider /> {/* Separator */}
 
-                             {/* --- Description/Bio Section --- */}
                              <Box>
-                                 <EditableTextArea
-                                     label="About / Bio" // Label here is mostly for edit mode now
-                                     value={studentData?.description}
-                                     onSave={handleDescriptionSave}
-                                     placeholder="(Tell professors a bit about yourself)"
-                                     emptyText="(No description provided)"
-                                     typographyVariant="body2" // Use body2 for potentially long text
-                                     textFieldProps={{ rows: 4 }}
-                                     isSaving={isSaving}
-                                 />
-                             </Box>
+                              {/* This Typography is just the section title */}
+                              <Typography variant="h6" gutterBottom sx={{ fontWeight: 'medium' }}>
+                                About
+                              </Typography>
+                              <EditableTextArea
+                                value={studentData?.description}
+                                onSave={handleDescriptionSave}
+                                placeholder="(Tell professors a bit about yourself)"
+                                emptyText="(No description provided)"
+                                // --- CHANGE TYPOGRAPHY VARIANT ---
+                                typographyVariant="body1" // Changed from body2 (default)
+                                // --- END CHANGE ---
+                                textFieldProps={{ rows: 4 }}
+                                isSaving={isSaving}
+                              />
+                            </Box>
 
                             <Divider /> {/* Separator */}
 
@@ -442,6 +513,52 @@ const StudentDashboard = () => {
                   <Button onClick={handlePhotoSave} color="primary" variant="contained" disabled={!photoFile || isSaving}>Save</Button>
               </DialogActions>
             </Dialog>
+
+            {/* --- Cover Photo Modals (NEW) --- */}
+      {/* View Cover Dialog (Optional - only if you want a separate view click) */}
+       <Dialog open={viewCoverMode} onClose={() => !isSaving && setViewCoverMode(false)} maxWidth="md">
+           <DialogTitle>Cover Photo</DialogTitle>
+           <DialogContent>
+               {studentData?.coverLink ? (
+                   <img src={studentData.coverLink} alt="Cover Preview" style={{ maxWidth: '100%', height: 'auto', display: 'block' }} />
+               ) : <Typography>No cover photo set.</Typography>}
+           </DialogContent>
+           <DialogActions>
+                <Button onClick={handleTriggerEditCover} startIcon={<EditIcon />} disabled={isSaving}>Edit</Button>
+               {studentData?.coverLink && ( <Button onClick={handleCoverDelete} color="error" startIcon={<DeleteIcon />} disabled={isSaving}>Delete</Button> )}
+               <Button onClick={() => setViewCoverMode(false)} startIcon={<CloseIcon />} disabled={isSaving}>Close</Button>
+           </DialogActions>
+       </Dialog>
+
+       {/* Edit Cover Dialog */}
+       <Dialog open={editCoverMode} onClose={() => !isSaving && handleCoverCancel()} maxWidth="sm" fullWidth>
+         <DialogTitle>Update Cover Photo</DialogTitle>
+         <DialogContent>
+            {/* Basic File Input Button */}
+           <Button variant="outlined" component="label" fullWidth sx={{ mb: 1 }} disabled={isSaving}>
+              {coverFile ? `Selected: ${coverFile.name}` : 'Select New Cover Image'}
+              <input type="file" accept="image/*" hidden onChange={handleCoverFileChange} disabled={isSaving}/>
+           </Button>
+            {/* Display preview if file selected */}
+            {coverFile && (
+                <Box sx={{ my: 1, textAlign: 'center' }}>
+                    <Typography variant="caption">Preview:</Typography>
+                    <img src={URL.createObjectURL(coverFile)} alt="Cover Preview" style={{ maxWidth: '100%', height: 'auto', display: 'block', marginTop: '4px' }} />
+                </Box>
+            )}
+            {/* Delete Button */}
+           {studentData?.coverLink && (
+             <Button variant="outlined" color="error" onClick={handleCoverDelete} startIcon={<DeleteIcon />} fullWidth size="small" disabled={isSaving} sx={{mt: 1}}>
+               Remove Current Cover Photo
+             </Button>
+            )}
+         </DialogContent>
+        <DialogActions>
+           <Button onClick={handleCoverCancel} disabled={isSaving}>Cancel</Button>
+           <Button onClick={handleCoverSave} color="primary" variant="contained" disabled={!coverFile || isSaving}>Save</Button>
+        </DialogActions>
+       </Dialog>
+       {/* --- End Cover Photo Modals --- */}
       </Container>
     </DashboardLayout>
   );

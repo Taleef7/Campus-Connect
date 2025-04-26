@@ -35,10 +35,16 @@ const ProfileHeader = ({
     else { onEditCover(); }
   };
 
-  const handlePhotoClick = () => {
-    if (photoLink) { onViewPhoto(); }
-    else { onEditPhoto(); }
+  // --- Modify handlePhotoClick ---
+  const handlePhotoClick = (e) => { // Accept event 'e'
+    e.stopPropagation(); // <<< ADD THIS LINE to stop bubbling
+    if (photoLink) {
+      onViewPhoto();
+    } else {
+      onEditPhoto();
+    }
   };
+  // --- End modification ---
 
   const handleCoverEditButtonClick = (e) => { e.stopPropagation(); onEditCover(); };
   const handlePhotoEditButtonClick = (e) => { e.stopPropagation(); onEditPhoto(); };
@@ -47,7 +53,7 @@ const ProfileHeader = ({
     <Box
       sx={{
         position: 'relative',
-        height: { xs: 150, sm: 200 },
+        height: { xs: 300, sm: 300 },
         mb: { xs: 8, sm: 10 }, // Adjusted margin based on avatar size
         // --- THEME BACKGROUND ---
         // Use coverLink if available, otherwise use theme secondary color

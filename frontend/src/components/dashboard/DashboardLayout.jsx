@@ -1,91 +1,116 @@
 /* eslint-disable react/prop-types */
 /* eslint-disable no-unused-vars */
 // frontend/src/components/dashboard/DashboardLayout.jsx
-import React from 'react';
-import { Box, Typography, Button, AppBar, Toolbar } from '@mui/material'; // Removed Container
-import { Link as RouterLink, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Button, AppBar, Toolbar } from '@mui/material';
+import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom'; // Added useNavigate
+// Firebase Imports
+import { auth, db } from '../../firebase';
+import { onAuthStateChanged, signOut } from 'firebase/auth'; // Added signOut
+import { doc, getDoc } from 'firebase/firestore';
 
-const DashboardLayout = ({ title, handleSignOut, children, dashboardPath }) => {
+// Removed dashboardPath from props, title is also unused currently
+const DashboardLayout = ({ children }) => {
     const location = useLocation();
-    console.log("Current location:", location.pathname);
+    const navigate = useNavigate(); // Hook for navigation
+    const currentPath = location.pathname;
 
-    const navLinkHoverSx = {
-        borderRadius: 1, // Use theme's border radius potentially theme.shape.borderRadius
-        '&:hover': {
-            backgroundColor: 'action.hover', // Use theme action color for hover
-            // Consider a slightly darker background on hover for white appbar:
-            // backgroundColor: 'rgba(0, 0, 0, 0.04)'
-        },
+    // State for logged-in user info
+    const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
+    const [loggedInUserDashboardPath, setLoggedInUserDashboardPath] = useState(null);
+
+    // Effect to determine logged-in user's dashboard path
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            if (user && user.emailVerified) {
+                setIsUserLoggedIn(true);
+                const userDocRef = doc(db, 'users', user.uid);
+                try {
+                    const docSnap = await getDoc(userDocRef);
+                    if (docSnap.exists()) {
+                        const role = docSnap.data().role;
+                        setLoggedInUserDashboardPath(
+                            role === 'student' ? '/student-dashboard' :
+                            role === 'professor' ? '/professor-dashboard' : null
+                        );
+                    } else { setLoggedInUserDashboardPath(null); }
+                } catch (error) {
+                    console.error("Error fetching user role for layout:", error);
+                    setLoggedInUserDashboardPath(null);
+                }
+            } else {
+                // No user logged in or not verified
+                setIsUserLoggedIn(false);
+                setLoggedInUserDashboardPath(null);
+            }
+        });
+        return () => unsubscribe(); // Cleanup on unmount
+    }, []); // Run once on mount
+
+    // Define SignOut handler inside the layout
+    const handleSignOut = async () => {
+        try {
+            await signOut(auth);
+            // Navigate to home or login page after sign out
+            navigate('/'); // Or '/student-login' ?
+        } catch (error) {
+            console.error("Sign out error:", error);
+            // Show snackbar?
+        }
     };
 
+    const navLinkHoverSx = {
+      borderRadius: 1,
+      '&:hover': {
+          backgroundColor: 'action.hover',
+      },
+  };
+    // --- Determine if we are on a profile page ---
+    const isProfilePage = currentPath.startsWith('/profile/');
+    // --- ---
+
+
     return (
-        // Use theme background color. CssBaseline applies this to body.
         <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
-            <AppBar
-                position="sticky"
-                // Use theme colors: paper background, primary text. Elevation from theme defaults.
-                 sx={{ bgcolor: 'background.paper', color: 'text.primary' }}
-                 // Or directly use primary color if you want a gold AppBar:
-                 // color="primary" // This makes AppBar gold, text should contrast automatically
-            >
+            <AppBar position="sticky" sx={{ bgcolor: 'background.paper', color: 'text.primary' }}>
                 <Toolbar>
-                    {/* Title Link - Inherits color */}
+                    {/* Title Link */}
                     <Typography
-                        variant="h6"
-                        component={RouterLink}
-                        to={dashboardPath || '/'}
-                        sx={{
-                            flexGrow: 1,
-                            fontWeight: 'bold',
-                            color: 'inherit', // Inherit color from AppBar
-                            textDecoration: 'none',
-                            '&:hover': { opacity: 0.9 }
-                        }}
+                        variant="h6" component={RouterLink}
+                        // Link to dashboard if logged in, else home
+                        to={loggedInUserDashboardPath || '/'}
+                        sx={{ flexGrow: 1, fontWeight: 'bold', color: 'inherit', textDecoration: 'none', '&:hover': { opacity: 0.9 } }}
                     >
-                        Campus-Connect
+                        Campus Connect
                     </Typography>
 
-                    {/* Dashboard Link - Use secondary color for contrast on paper bg */}
-                    {dashboardPath && location.pathname !== dashboardPath && (
-                        <Button
-                            component={RouterLink}
-                            to={dashboardPath}
-                            color="secondary" // Use theme secondary (dark gray)
-                            sx={{ ...navLinkHoverSx, mr: 1, fontWeight: 'medium' }} // Added font weight
-                        >
+                    {/* --- BUTTON LOGIC REVISED --- */}
+
+                    {/* Dashboard Button */}
+                    {isUserLoggedIn && loggedInUserDashboardPath && currentPath !== loggedInUserDashboardPath && (
+                        <Button variant='outlined' component={RouterLink} to={loggedInUserDashboardPath} color="secondary" sx={{ ...navLinkHoverSx, mr: 1, fontWeight: 'medium' }}>
                             Dashboard
                         </Button>
                     )}
 
-                    {/* Directory Link - Use secondary color */}
-                    {location.pathname !== '/directory' && (
-                        <Button
-                            variant='outlined'
-                            component={RouterLink}
-                            to="/directory"
-                            color="secondary" // Use theme secondary (dark gray)
-                            sx={{ ...navLinkHoverSx, mr: 1, fontWeight: 'medium' }} // Added font weight
-                        >
+                    {/* Directory Button: Show if Logged In AND NOT on Directory AND NOT on Profile */}
+                    {isUserLoggedIn && currentPath !== '/directory' && !isProfilePage && ( // <<< ADDED !isProfilePage CHECK
+                        <Button variant='outlined' component={RouterLink} to="/directory" color="secondary" sx={{ ...navLinkHoverSx, mr: 1, fontWeight: 'medium' }}>
                             Directory
                         </Button>
                     )}
 
-                    {/* Sign Out Button - Use secondary color */}
-                    {handleSignOut && (
-                        <Button
-                            variant="contained" // Make it stand out more
-                            onClick={handleSignOut}
-                            size="small"
-                            color="primary" // Use theme secondary (dark gray) for outline/text
-                            sx={{ ml: 2 }}
-                        >
+                    {/* Sign Out Button */}
+                    {isUserLoggedIn && (
+                        <Button variant='contained' onClick={handleSignOut} color="primary" sx={{ ml: 1 }} >
                             Sign Out
                         </Button>
                     )}
+                    {/* --- END BUTTON LOGIC --- */}
+
                 </Toolbar>
             </AppBar>
 
-            {/* Main Content Area - Container should be added within child pages */}
             <Box component="main" sx={{ flexGrow: 1, py: { xs: 2, sm: 3, md: 4 } }}>
                 {children}
             </Box>

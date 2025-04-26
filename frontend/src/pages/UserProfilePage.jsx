@@ -216,7 +216,7 @@ const groupedDetailedExperiences = groupExperiencesByType(detailedExperiences);
 
   return (
     // Using DashboardLayout, passing null to hide sign out for public view
-    <DashboardLayout handleSignOut={null}>
+    <DashboardLayout>
         <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
             {/* Back Button */}
             <Button component={RouterLink} to="/directory" startIcon={<ArrowBackIcon />} sx={{ mb: 2 }}>
