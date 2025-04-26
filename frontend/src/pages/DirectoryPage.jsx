@@ -1,6 +1,7 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Typography, CircularProgress, Container, Grid2, Paper, Button } from '@mui/material'; 
+import { Box, Typography, CircularProgress, Container, Grid2, Paper, Button } from '@mui/material';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { signOut } from 'firebase/auth';
@@ -151,7 +152,7 @@ const DirectoryPage = () => {
                  {filteredUsers.length > 0 ? (
                     filteredUsers.map(user => (
                        // --- Corrected Grid v2 Item Usage ---
-                       <Grid2 key={user.id} size={{ xs: 12, sm: 6, md: 4 }}> 
+                       <Grid2 key={user.id} size={{ xs: 12, sm: 6, md: 4 }}>
                            <UserCard user={user} />
                         </Grid2>
                     ))
