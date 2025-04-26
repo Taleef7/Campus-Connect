@@ -128,7 +128,7 @@ const StudentCoursesEnrolled = ({ studentData }) => { // Accept studentData if n
         semester: courseEntry.semester.trim(),
         instructorName: courseEntry.instructorName.trim(), // Save even if empty
         status: courseEntry.status,
-        grade: (courseEntry.grade || '').trim(),
+        grade: courseEntry.grade.trim(),
         // grade: courseEntry.grade // If grade field is added
     };
 

@@ -1,159 +1,104 @@
-import React, { useState, useRef, useEffect } from 'react';
-import {
-  Paper, Typography, Button, Box, Dialog, DialogTitle,
-  DialogContent, DialogActions, TextField, Stack, Menu, MenuItem
-} from '@mui/material';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { updateDoc, doc } from 'firebase/firestore';
-import { app, db, auth } from '../../firebase';
+/* eslint-disable react/prop-types */
+/* eslint-disable no-unused-vars */
+// frontend/src/components/profile/ProfileInfoSection.jsx
+import React from 'react';
+import { Box, Typography } from '@mui/material';
+import EditableField from './../common/EditableField'; // Adjust path if needed
+import EditableTextArea from './../common/EditableTextArea'; // Adjust path if needed
+import FileUploadField from './../common/FileUploadField'; // Adjust path if needed
 
-const storage = getStorage(app);
+const ProfileInfoSection = ({
+  professorData,
+  isSaving,
+  handleNameSave,
+  handleHeadlineSave,
+  handlePronounsSave,
+  handleAboutSave,
+  handleResumeSave,
+  handleResumeDelete,
+  handleDepartmentSave, // <-- Destructure the new handler prop
+}) => {
 
-const ProfileInfoSection = ({ professorData, user }) => {
-  const [open, setOpen] = useState(false);
-  const [menuAnchor, setMenuAnchor] = useState(null);
-  const [resumeUploaded, setResumeUploaded] = useState(false);
-  const fileInputRef = useRef();
-
-  const [form, setForm] = useState({
-    name: '',
-    headline: '',
-    pronouns: '',
-    department: '',
-    about: ''
-  });
-
-  useEffect(() => {
-    if (professorData) {
-      setForm({
-        name: professorData.name || '',
-        headline: professorData.headline || '',
-        pronouns: professorData.pronouns || '',
-        department: professorData.department || '',
-        about: professorData.about || ''
-      });
-      setResumeUploaded(!!professorData.resumeLink);
-    }
-  }, [professorData]);
-
-  const handleChange = (field) => (e) => {
-    setForm({ ...form, [field]: e.target.value });
-  };
-
-  const handleSave = async () => {
-    await updateDoc(doc(db, 'users', user.uid), form);
-    setOpen(false);
-  };
-
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleResumeUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file || !user?.uid || !professorData?.id) return;
-
-    try {
-      const storageRef = ref(storage, `resumes/${user.uid}/${file.name}`);
-      await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(storageRef);
-
-      await updateDoc(doc(db, 'users', professorData.id), {
-        resumeLink: downloadURL,
-        resumePath: storageRef.fullPath,
-      });
-
-      setResumeUploaded(true);
-      window.location.reload(); // To reflect changes immediately
-    } catch (err) {
-      console.error('Resume upload failed:', err);
-    }
-
-    setMenuAnchor(null);
-  };
+  const resumeLink = professorData?.resumeLink || ''; // Extract for clarity
 
   return (
-    <Paper elevation={3} sx={{ width: '100%', p: 3, borderRadius: 4, backgroundColor: '#fff', position: 'relative' }}>
-      <Button
-        size="small"
-        sx={{ position: 'absolute', top: 8, right: 8 }}
-        onClick={() => setOpen(true)}
-      >
-        ✏️ Edit
-      </Button>
+    <Box sx={{ textAlign: 'left', pt: 2, pl: { xs: 0, sm: 2 } }}>
+      {/* --- Render EditableFields --- */}
+      <EditableField
+        label="Full Name"
+        value={professorData?.name}
+        onSave={handleNameSave}
+        typographyVariant="h5"
+        placeholder="(No Name Set)"
+        textFieldProps={{ size: 'small' }}
+        containerSx={{ mb: 0.5, fontWeight: 'bold' }}
+        isSaving={isSaving}
+      />
+      <EditableField
+        label="Headline/Title"
+        value={professorData?.headline}
+        onSave={handleHeadlineSave}
+        typographyVariant="subtitle1"
+        placeholder="(No headline)"
+        emptyText="(No headline)"
+        textFieldProps={{ size: 'small' }}
+        containerSx={{ mb: 0.5, '& .MuiTypography-root': { color: 'text.secondary' } }}
+        isSaving={isSaving}
+      />
+      <EditableField
+        label="Pronouns"
+        value={professorData?.pronouns}
+        onSave={handlePronounsSave}
+        typographyVariant="body2"
+        placeholder="(Not set)"
+        emptyText={`Pronouns: ${professorData?.pronouns || '(Not set)'}`}
+        textFieldProps={{ size: 'small' }}
+        containerSx={{ mb: 2, '& .MuiTypography-root': { color: 'text.secondary' } }}
+        isSaving={isSaving}
+      />
 
-      <Typography variant="subtitle2" color="text.secondary">Title</Typography>
-      <Typography>{professorData?.headline || '—'}</Typography>
+      {/* +++ Add Department Field +++ */}
+      <EditableField
+        label="Department"
+        value={professorData?.department} // Bind to department field
+        onSave={handleDepartmentSave}    // Connect to the save handler
+        typographyVariant="body1"        // Choose appropriate size
+        placeholder="(e.g., Computer Science)"
+        emptyText={`Department: ${professorData?.department || '(Not set)'}`}
+        textFieldProps={{ size: 'small' }}
+        containerSx={{ mb: 2 }}          // Add margin bottom
+        isSaving={isSaving}
+      />
+      {/* +++ End Department Field +++ */}
 
-      <Typography variant="subtitle2" color="text.secondary" mt={2}>Pronouns</Typography>
-      <Typography>{professorData?.pronouns || '—'}</Typography>
-
-      <Typography variant="subtitle2" color="text.secondary" mt={2}>Department</Typography>
-      <Typography>{professorData?.department || '—'}</Typography>
-
-      <Typography variant="subtitle2" color="text.secondary" mt={2}>About</Typography>
-      <Typography sx={{ whiteSpace: 'pre-wrap' }}>{professorData?.about || '—'}</Typography>
-
-      <Box mt={2}>
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={(e) => setMenuAnchor(e.currentTarget)}
-          sx={{
-            borderRadius: '20px',
-            color: '#c0a060',
-            borderColor: '#e6dbc7',
-            fontWeight: 600,
-            textTransform: 'none',
-            justifyContent: 'center',
-            px: 2
-          }}
-        >
-          {resumeUploaded ? 'Resume' : 'Upload Resume'}
-        </Button>
-
-        <Menu
-          anchorEl={menuAnchor}
-          open={Boolean(menuAnchor)}
-          onClose={() => setMenuAnchor(null)}
-          MenuListProps={{ onMouseLeave: () => setMenuAnchor(null) }}
-        >
-          {professorData?.resumeLink && (
-            <MenuItem onClick={() => window.open(professorData.resumeLink, '_blank')}>
-              📄 View Resume
-            </MenuItem>
-          )}
-          <MenuItem onClick={handleUploadClick}>
-            📑 Update Resume
-          </MenuItem>
-        </Menu>
-
-        <input
-          type="file"
-          ref={fileInputRef}
-          hidden
-          accept=".pdf"
-          onChange={handleResumeUpload}
+      {/* --- Render EditableTextArea for About --- */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h6" gutterBottom sx={{ fontWeight: 'medium' }}>About</Typography>
+        <EditableTextArea
+          label="About"
+          value={professorData?.about}
+          onSave={handleAboutSave}
+          placeholder="(Provide a brief description about yourself)"
+          emptyText="(No about section provided)"
+          textFieldProps={{ rows: 4 }}
+          isSaving={isSaving}
         />
       </Box>
 
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth>
-        <DialogTitle>Edit Profile Info</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} mt={1}>
-            <TextField label="Name" value={form.name} onChange={handleChange('name')} fullWidth />
-            <TextField label="Title" value={form.headline} onChange={handleChange('headline')} fullWidth />
-            <TextField label="Pronouns" value={form.pronouns} onChange={handleChange('pronouns')} fullWidth />
-            <TextField label="Department" value={form.department} onChange={handleChange('department')} fullWidth />
-            <TextField label="About" value={form.about} onChange={handleChange('about')} multiline rows={3} fullWidth />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSave}>Update</Button>
-        </DialogActions>
-      </Dialog>
-    </Paper>
+      {/* --- Render FileUploadField for Resume --- */}
+      <FileUploadField
+        label="Resume"
+        fileLink={resumeLink}
+        accept="application/pdf"
+        onSave={handleResumeSave}
+        onDelete={handleResumeDelete}
+        isSaving={isSaving}
+        viewButtonText="View PDF"
+        selectButtonText="Select PDF File"
+        noFileText="No resume uploaded"
+        containerSx={{ mt: 2 }}
+      />
+    </Box>
   );
 };
 
