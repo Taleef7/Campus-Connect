@@ -1,115 +1,167 @@
-import React, { useState, useEffect } from 'react';
+// frontend/src/components/opportunities/AddOpportunityForm.jsx
+import { useState, useEffect, useCallback } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, TextField, MenuItem, FormControlLabel, Checkbox
+  Button, TextField, FormControl, InputLabel, Select,
+  MenuItem, FormControlLabel, Checkbox, FormHelperText, CircularProgress
 } from '@mui/material';
+import { Timestamp } from 'firebase/firestore';
 
-const opportunityTypes = [
-  'Research Assistant',
-  'Teaching Assistant',
-  'Internship',
-  'Volunteer',
-  'Grader',
-  'Other'
-];
+const AddOpportunityForm = ({ open, onClose, onSave, initialData = null, isSaving }) => {
+  const getInitialState = useCallback(() => ({
+    title: initialData?.title || '',
+    description: initialData?.description || '',
+    type: initialData?.type || 'TA',
+    allowInterest: initialData?.allowInterest !== undefined ? initialData.allowInterest : true,
+    deadline: initialData?.deadline ? initialData.deadline.toDate().toISOString().split('T')[0] : '',
+  }), [initialData]);
 
-const AddOpportunityForm = ({ open, onClose, onSave, professorId, initialData }) => {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [type, setType] = useState('');
-  const [deadline, setDeadline] = useState('');
-  const [allowInterest, setAllowInterest] = useState(true);
+  const [formData, setFormData] = useState(getInitialState());
+  const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => {
-    if (initialData) {
-      setTitle(initialData.title || '');
-      setDescription(initialData.description || '');
-      setType(initialData.type || '');
-      setDeadline(initialData.deadline ? new Date(initialData.deadline).toISOString().split('T')[0] : '');
-      setAllowInterest(initialData.allowInterest ?? true);
-    } else {
-      setTitle('');
-      setDescription('');
-      setType('');
-      setDeadline('');
-      setAllowInterest(true);
+    if (open) {
+      setFormData(getInitialState());
+      setFormErrors({});
     }
-  }, [initialData]);
+  }, [open, getInitialState]);
 
-  const handleSubmit = () => {
-    if (!title || !description || !type) {
-      alert('Please fill out all required fields.');
-      return;
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+    if (formErrors[name]) {
+      setFormErrors(prev => ({ ...prev, [name]: null }));
+    }
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    if (!formData.title.trim()) errors.title = "Title is required.";
+    if (!formData.description.trim()) errors.description = "Description is required.";
+    if (!formData.type) errors.type = "Type is required.";
+    if (formData.deadline && isNaN(Date.parse(formData.deadline))) {
+      errors.deadline = "Invalid deadline date.";
+    }
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSave = () => {
+    if (!validateForm()) return;
+
+    let deadlineTimestamp = null;
+    if (formData.deadline) {
+      try {
+        const dateParts = formData.deadline.split('-');
+        const utcDate = new Date(Date.UTC(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2])));
+        if (isNaN(utcDate.getTime())) throw new Error("Invalid date");
+        deadlineTimestamp = Timestamp.fromDate(utcDate);
+      } catch (err) {
+        console.error("Invalid deadline format:", err);
+        setFormErrors(prev => ({ ...prev, deadline: "Invalid deadline format." }));
+        return;
+      }
     }
 
-    const data = {
-      title,
-      description,
-      type,
-      allowInterest,
-      deadline: deadline ? new Date(deadline) : null,
-      id: initialData?.id || undefined
+    const dataToSave = {
+      ...formData,
+      ...(deadlineTimestamp && { deadline: deadlineTimestamp }),
     };
 
-    onSave(data);
+    if (!formData.deadline) {
+      delete dataToSave.deadline;
+    }
+
+    onSave(dataToSave); // ✅ Correctly triggers save back to ProfessorDashboard
   };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>{initialData ? 'Edit Opportunity' : 'Create New Opportunity Post'}</DialogTitle>
-      <DialogContent dividers>
+    <Dialog open={open} onClose={() => !isSaving && onClose()} maxWidth="sm" fullWidth>
+      <DialogTitle>{initialData ? 'Edit Opportunity Post' : 'Create New Opportunity Post'}</DialogTitle>
+      <DialogContent>
         <TextField
+          autoFocus
           margin="dense"
-          label="Opportunity Title *"
+          name="title"
+          label="Opportunity Title"
           fullWidth
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          variant="outlined"
+          value={formData.title}
+          onChange={handleChange}
+          required
+          error={!!formErrors.title}
+          helperText={formErrors.title}
+          disabled={isSaving}
         />
         <TextField
           margin="dense"
-          label="Description *"
+          name="description"
+          label="Description"
           fullWidth
           multiline
-          minRows={3}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          rows={4}
+          variant="outlined"
+          value={formData.description}
+          onChange={handleChange}
+          required
+          error={!!formErrors.description}
+          helperText={formErrors.description}
+          disabled={isSaving}
         />
+        <FormControl fullWidth margin="dense" required error={!!formErrors.type} disabled={isSaving}>
+          <InputLabel id="opportunity-type-label">Type</InputLabel>
+          <Select
+            labelId="opportunity-type-label"
+            name="type"
+            value={formData.type}
+            label="Type"
+            onChange={handleChange}
+          >
+            <MenuItem value="TA">TA</MenuItem>
+            <MenuItem value="Research Assistant">Research Assistant</MenuItem>
+            <MenuItem value="Grader">Grader</MenuItem>
+            <MenuItem value="Lab Assistant">Lab Assistant</MenuItem>
+            <MenuItem value="Job">Job</MenuItem>
+            <MenuItem value="Volunteer">Volunteer</MenuItem>
+            <MenuItem value="Other">Other</MenuItem>
+          </Select>
+          {formErrors.type && <FormHelperText>{formErrors.type}</FormHelperText>}
+        </FormControl>
         <TextField
           margin="dense"
-          label="Type *"
-          fullWidth
-          select
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-        >
-          {opportunityTypes.map((option) => (
-            <MenuItem key={option} value={option}>{option}</MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          margin="dense"
+          name="deadline"
           label="Application Deadline (Optional)"
           type="date"
           fullWidth
+          variant="outlined"
+          value={formData.deadline}
+          onChange={handleChange}
           InputLabelProps={{ shrink: true }}
-          value={deadline}
-          onChange={(e) => setDeadline(e.target.value)}
+          error={!!formErrors.deadline}
+          helperText={formErrors.deadline}
+          disabled={isSaving}
         />
         <FormControlLabel
           control={
             <Checkbox
-              checked={allowInterest}
-              onChange={(e) => setAllowInterest(e.target.checked)}
+              name="allowInterest"
+              checked={formData.allowInterest}
+              onChange={handleChange}
+              color="primary"
+              disabled={isSaving}
             />
           }
           label="Allow students to mark themselves as 'Interested'"
-          sx={{ mt: 2 }}
+          sx={{ mt: 1 }}
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button onClick={handleSubmit} variant="contained">
-          {initialData ? 'Update' : 'Create'} Post
+        <Button onClick={onClose} disabled={isSaving}>Cancel</Button>
+        <Button onClick={handleSave} variant="contained" disabled={isSaving}>
+          {isSaving ? <CircularProgress size={24} /> : (initialData ? 'Update Post' : 'Create Post')}
         </Button>
       </DialogActions>
     </Dialog>
