@@ -5,6 +5,7 @@ import {
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import GroupIcon from '@mui/icons-material/Group';
+
 import FavoriteIcon from '@mui/icons-material/Favorite'; // New Icon
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'; // New Icon
 
@@ -13,6 +14,7 @@ const OpportunityListItem = ({
   onEdit,
   onDelete,
   onViewInterested,
+
   viewMode,
   onMarkInterest,
   isProcessingInterest,

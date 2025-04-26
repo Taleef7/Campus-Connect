@@ -1,182 +1,115 @@
-/* eslint-disable react/prop-types */
-// frontend/src/components/opportunities/AddOpportunityForm.jsx
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
-  FormControl, InputLabel, Select, MenuItem, FormControlLabel, Checkbox, FormHelperText, CircularProgress
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  Button, TextField, MenuItem, FormControlLabel, Checkbox
 } from '@mui/material';
-import { Timestamp } from 'firebase/firestore'; // Import Timestamp
 
-const AddOpportunityForm = ({ open, onClose, onSave, initialData = null, isSaving }) => {
-  // Initialize form state: Use initialData if editing, otherwise default empty values
-  const getInitialState = useCallback(() => ({
-    title: initialData?.title || '',
-    description: initialData?.description || '',
-    type: initialData?.type || 'TA', // Default type
-    allowInterest: initialData?.allowInterest !== undefined ? initialData.allowInterest : true, // Default to allowing interest
-    deadline: initialData?.deadline ? initialData.deadline.toDate().toISOString().split('T')[0] : '', // Format for date input
-    // Add other fields from your data model as needed
-  }), [initialData]);
+const opportunityTypes = [
+  'Research Assistant',
+  'Teaching Assistant',
+  'Internship',
+  'Volunteer',
+  'Grader',
+  'Other'
+];
 
-  const [formData, setFormData] = useState(getInitialState());
-  const [formErrors, setFormErrors] = useState({});
+const AddOpportunityForm = ({ open, onClose, onSave, professorId, initialData }) => {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [type, setType] = useState('');
+  const [deadline, setDeadline] = useState('');
+  const [allowInterest, setAllowInterest] = useState(true);
 
-  // Reset form when initialData changes (when opening for edit) or when dialog closes/opens
   useEffect(() => {
-    if (open) {
-        setFormData(getInitialState());
-        setFormErrors({}); // Clear errors when dialog opens
+    if (initialData) {
+      setTitle(initialData.title || '');
+      setDescription(initialData.description || '');
+      setType(initialData.type || '');
+      setDeadline(initialData.deadline ? new Date(initialData.deadline).toISOString().split('T')[0] : '');
+      setAllowInterest(initialData.allowInterest ?? true);
+    } else {
+      setTitle('');
+      setDescription('');
+      setType('');
+      setDeadline('');
+      setAllowInterest(true);
     }
-  }, [getInitialState, initialData, open]);
+  }, [initialData]);
 
-  const handleChange = (event) => {
-    const { name, value, type, checked } = event.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
-    // Clear specific error when user starts typing
-    if (formErrors[name]) {
-        setFormErrors(prev => ({...prev, [name]: null}));
-    }
-  };
-
-  const validateForm = () => {
-    let errors = {};
-    if (!formData.title.trim()) errors.title = "Title is required.";
-    if (!formData.description.trim()) errors.description = "Description is required.";
-    if (!formData.type) errors.type = "Opportunity type is required.";
-    // Basic date validation (doesn't prevent past dates, add more if needed)
-    if (formData.deadline && isNaN(Date.parse(formData.deadline))) {
-        errors.deadline = "Invalid date format.";
-    }
-    // Add more validation as needed (e.g., date format)
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0; // Return true if no errors
-  };
-
-  const handleSave = () => {
-    if (!validateForm()) return;
-
-    // Convert deadline string back to Timestamp if needed
-    let deadlineTimestamp = null;
-    if (formData.deadline) {
-        try {
-            // Attempt to create a date object at the beginning of the selected day in local time
-            const dateParts = formData.deadline.split('-');
-            const utcDate = new Date(Date.UTC(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2])));
-            if (isNaN(utcDate.getTime())) { // Check if date is valid
-                throw new Error("Invalid date components");
-             }
-            deadlineTimestamp = Timestamp.fromDate(utcDate);
-        } catch (dateError) {
-            console.error("Error parsing date:", dateError);
-            setFormErrors(prev => ({...prev, deadline: "Invalid date format."}));
-            return; // Stop save if date is invalid
-        }
+  const handleSubmit = () => {
+    if (!title || !description || !type) {
+      alert('Please fill out all required fields.');
+      return;
     }
 
-
-    // Prepare data to save (exclude deadline if empty)
-    const dataToSave = {
-        ...formData,
-        ...(deadlineTimestamp && { deadline: deadlineTimestamp }) // Only include deadline if it's valid
+    const data = {
+      title,
+      description,
+      type,
+      allowInterest,
+      deadline: deadline ? new Date(deadline) : null,
+      id: initialData?.id || undefined
     };
-     if (!formData.deadline) {
-        delete dataToSave.deadline; // Ensure deadline field is not sent if empty
-    }
 
-
-    onSave(dataToSave); // Pass the processed data to the parent save handler
+    onSave(data);
   };
 
   return (
-    <Dialog open={open} onClose={() => !isSaving && onClose()} maxWidth="sm" fullWidth> {/* Prevent closing while saving */}
-      <DialogTitle>{initialData ? 'Edit Opportunity Post' : 'Create New Opportunity Post'}</DialogTitle>
-      <DialogContent>
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+      <DialogTitle>{initialData ? 'Edit Opportunity' : 'Create New Opportunity Post'}</DialogTitle>
+      <DialogContent dividers>
         <TextField
-          autoFocus
           margin="dense"
-          name="title"
-          label="Opportunity Title"
-          type="text"
+          label="Opportunity Title *"
           fullWidth
-          variant="outlined"
-          value={formData.title}
-          onChange={handleChange}
-          required
-          error={!!formErrors.title}
-          helperText={formErrors.title}
-          disabled={isSaving}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
         />
         <TextField
           margin="dense"
-          name="description"
-          label="Description"
-          type="text"
+          label="Description *"
           fullWidth
-          variant="outlined"
           multiline
-          rows={4}
-          value={formData.description}
-          onChange={handleChange}
-          required
-          error={!!formErrors.description}
-          helperText={formErrors.description}
-          disabled={isSaving}
+          minRows={3}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
         />
-        <FormControl fullWidth margin="dense" required error={!!formErrors.type} disabled={isSaving}>
-          <InputLabel id="opportunity-type-label">Type</InputLabel>
-          <Select
-            labelId="opportunity-type-label"
-            name="type"
-            value={formData.type}
-            label="Type"
-            onChange={handleChange}
-          >
-            <MenuItem value="TA">TA</MenuItem>
-            <MenuItem value="Research Assistant">Research Assistant</MenuItem>
-            <MenuItem value="Grader">Grader</MenuItem>
-            <MenuItem value="Lab Assistant">Lab Assistant</MenuItem>
-            <MenuItem value="Job">Job</MenuItem>
-            <MenuItem value="Volunteer">Volunteer</MenuItem>
-            <MenuItem value="Other">Other</MenuItem>
-          </Select>
-           {formErrors.type && <FormHelperText>{formErrors.type}</FormHelperText>}
-        </FormControl>
-         <TextField
+        <TextField
           margin="dense"
-          name="deadline"
-          label="Application Deadline (Optional)"
-          type="date" // Use date input type
+          label="Type *"
           fullWidth
-          variant="outlined"
-          value={formData.deadline}
-          onChange={handleChange}
-          InputLabelProps={{ shrink: true }} // Keep label floated
-          error={!!formErrors.deadline}
-          helperText={formErrors.deadline}
-          disabled={isSaving}
+          select
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+        >
+          {opportunityTypes.map((option) => (
+            <MenuItem key={option} value={option}>{option}</MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          margin="dense"
+          label="Application Deadline (Optional)"
+          type="date"
+          fullWidth
+          InputLabelProps={{ shrink: true }}
+          value={deadline}
+          onChange={(e) => setDeadline(e.target.value)}
         />
         <FormControlLabel
           control={
             <Checkbox
-              name="allowInterest"
-              checked={formData.allowInterest}
-              onChange={handleChange}
-              color="primary"
-              disabled={isSaving}
+              checked={allowInterest}
+              onChange={(e) => setAllowInterest(e.target.checked)}
             />
           }
           label="Allow students to mark themselves as 'Interested'"
-          sx={{ mt: 1 }}
+          sx={{ mt: 2 }}
         />
-
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} disabled={isSaving}>Cancel</Button>
-        <Button onClick={handleSave} variant="contained" disabled={isSaving}>
-          {isSaving ? <CircularProgress size={24} /> : (initialData ? 'Update Post' : 'Create Post')}
+        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={handleSubmit} variant="contained">
+          {initialData ? 'Update' : 'Create'} Post
         </Button>
       </DialogActions>
     </Dialog>

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Paper, Typography, Button, Box, Dialog, DialogTitle,
@@ -51,6 +52,7 @@ const ProfileInfoSection = ({ professorData, user }) => {
 
   const handleResumeUpload = async (e) => {
     const file = e.target.files[0];
+
     if (!file || !user?.uid || !professorData?.id) return;
 
     try {
@@ -68,7 +70,6 @@ const ProfileInfoSection = ({ professorData, user }) => {
     } catch (err) {
       console.error('Resume upload failed:', err);
     }
-
     setMenuAnchor(null);
   };
 

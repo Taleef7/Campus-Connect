@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { Avatar, Box, Button, Paper } from '@mui/material';
 import { updateDoc, doc, onSnapshot } from 'firebase/firestore';
@@ -44,11 +45,14 @@ const ProfileHeader = ({ user }) => {
     <Paper elevation={3} sx={{ width: '100%', p: 3, mb: 3, borderRadius: 4, textAlign: 'center', position: 'relative' }}>
       <Box sx={{ position: 'relative', display: 'inline-block' }}>
         <Avatar
+
           src={professorData.photoLink}
+
           sx={{ width: 100, height: 100, mx: 'auto', mb: 1 }}
         />
         <input
           type="file"
+
           accept="image/*"
           ref={fileInputRef}
           hidden
@@ -60,11 +64,14 @@ const ProfileHeader = ({ user }) => {
           onClick={handleEditClick}
         >
           ✏️
+
         </Button>
       </Box>
 
       <Box mt={2}>
+
         <h3 style={{ margin: 0 }}>{professorData.name}</h3>
+
         <p style={{ fontSize: '0.9rem', color: '#777' }}>Professor</p>
       </Box>
     </Paper>

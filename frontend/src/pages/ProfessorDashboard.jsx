@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Box, Typography, Paper, Button, CircularProgress,
@@ -9,6 +10,7 @@ import {
   doc, onSnapshot, collection, getDocs, updateDoc, setDoc, deleteDoc, query, where
 } from 'firebase/firestore';
 import imageCompression from 'browser-image-compression';
+
 
 import DashboardLayout from '../components/dashboard/DashboardLayout';
 import ProfessorCourses from './ProfessorCourses';
