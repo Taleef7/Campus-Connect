@@ -5,15 +5,23 @@ import {
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import GroupIcon from '@mui/icons-material/Group';
+import FavoriteIcon from '@mui/icons-material/Favorite'; // New Icon
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'; // New Icon
 
 const OpportunityListItem = ({
   opportunity,
   onEdit,
   onDelete,
   onViewInterested,
-  viewMode
+  viewMode,
+  onMarkInterest,
+  isProcessingInterest,
+  isAlreadyInterested,
+  onRemoveInterest,
+  isProcessingRemoval
 }) => {
   const isProfessorView = viewMode === 'professor';
+  const isStudentView = viewMode === 'student';
 
   const formatDate = (timestamp) => {
     if (!timestamp) return '—';
@@ -32,30 +40,61 @@ const OpportunityListItem = ({
           )}
         </Box>
 
-        {isProfessorView && (
-          <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-            {opportunity.allowInterest && onViewInterested && (
-              <Button
-                size="small"
-                startIcon={<GroupIcon />}
-                onClick={() => onViewInterested(opportunity.id)}
-                variant="outlined"
-              >
-                View Interested
-              </Button>
-            )}
-            {onEdit && (
-              <IconButton size="small" onClick={() => onEdit(opportunity)} aria-label="edit">
-                <EditIcon fontSize="small" />
-              </IconButton>
-            )}
-            {onDelete && (
-              <IconButton size="small" onClick={() => onDelete(opportunity.id)} aria-label="delete">
-                <DeleteIcon fontSize="small" color="error" />
-              </IconButton>
-            )}
-          </Box>
-        )}
+        <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+          {/* Professor Side Buttons */}
+          {isProfessorView && (
+            <>
+              {opportunity.allowInterest && onViewInterested && (
+                <Button
+                  size="small"
+                  startIcon={<GroupIcon />}
+                  onClick={() => onViewInterested(opportunity.id)}
+                  variant="outlined"
+                >
+                  View Interested
+                </Button>
+              )}
+              {onEdit && (
+                <IconButton size="small" onClick={() => onEdit(opportunity)} aria-label="edit">
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              )}
+              {onDelete && (
+                <IconButton size="small" onClick={() => onDelete(opportunity.id)} aria-label="delete">
+                  <DeleteIcon fontSize="small" color="error" />
+                </IconButton>
+              )}
+            </>
+          )}
+
+          {/* Student Side Button */}
+          {isStudentView && opportunity.allowInterest && (
+            <>
+              {!isAlreadyInterested ? (
+                <Button
+                  size="small"
+                  startIcon={<FavoriteBorderIcon />}
+                  onClick={() => onMarkInterest(opportunity.id, opportunity.professorId)}
+                  disabled={isProcessingInterest}
+                  variant="outlined"
+                >
+                  {isProcessingInterest ? "Processing..." : "Mark Interested"}
+                </Button>
+              ) : (
+                <Button
+                  size="small"
+                  startIcon={<FavoriteIcon />}
+                  onClick={() => onRemoveInterest(opportunity.id)}
+                  disabled={isProcessingRemoval}
+                  color="error"
+                  variant="outlined"
+                >
+                  {isProcessingRemoval ? "Removing..." : "Remove Interest"}
+                </Button>
+              )}
+            </>
+          )}
+        </Box>
       </Box>
 
       <Divider sx={{ my: 1 }} />
