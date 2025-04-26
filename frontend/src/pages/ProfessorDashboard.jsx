@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Box, Typography, Paper, Button, CircularProgress,
@@ -9,6 +8,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import {
   doc, onSnapshot, collection, getDocs, updateDoc, setDoc, deleteDoc, query, where
 } from 'firebase/firestore';
+import imageCompression from 'browser-image-compression';
 
 import DashboardLayout from '../components/dashboard/DashboardLayout';
 import ProfessorCourses from './ProfessorCourses';
@@ -150,7 +150,82 @@ const ProfessorDashboard = () => {
         <Box sx={{ flexGrow: 1, p: 4, backgroundColor: '#f9f9f9' }}>
           {tabValue === null ? (
             <>
-              <Box sx={{ height: 240, mb: 3, borderRadius: 4, backgroundImage: `url(${professorData.coverLink})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+              {/* Cover Image with Edit */}
+              <Box sx={{ position: 'relative', height: 240, mb: 3, borderRadius: 4, overflow: 'hidden' }}>
+                <Box
+                  sx={{
+                    width: '100%',
+                    height: '100%',
+                    backgroundImage: `url(${professorData.coverLink})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    borderRadius: 4,
+                  }}
+                />
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  id="cover-upload"
+                  style={{ display: 'none' }}
+                  onChange={async (e) => {
+                    const file = e.target.files[0];
+                    if (!file || !user?.uid || !professorData?.id) {
+                      console.error("Missing file or user info");
+                      return;
+                    }
+
+                    try {
+                      // Compress the image
+                      const options = {
+                        maxSizeMB: 0.5,
+                        maxWidthOrHeight: 800,
+                        useWebWorker: true,
+                      };
+                      const compressedFile = await imageCompression(file, options);
+
+                      // Convert to base64
+                      const reader = new FileReader();
+                      reader.onloadend = async () => {
+                        const base64 = reader.result;
+
+                        await updateDoc(doc(db, 'users', professorData.id), {
+                          coverLink: base64
+                        });
+
+                        setProfessorData((prev) => ({
+                          ...prev,
+                          coverLink: base64
+                        }));
+
+                        console.log("✅ Cover image uploaded to Firestore (base64).");
+                      };
+                      reader.readAsDataURL(compressedFile);
+                    } catch (err) {
+                      console.error("❌ Error compressing or uploading cover image:", err);
+                    }
+                  }}
+                />
+                <Button
+                  size="small"
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    fontSize: 10,
+                    backgroundColor: 'white',
+                    minWidth: 'auto',
+                    padding: '4px 8px',
+                    borderRadius: 2,
+                    boxShadow: 1,
+                  }}
+                  onClick={() => document.getElementById('cover-upload').click()}
+                >
+                  🖼️
+                </Button>
+              </Box>
+
+              {/* Dashboard cards */}
               <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3, mb: 4, flexWrap: 'wrap' }}>
                 {[expImg, coursesImg, oppImg].map((img, index) => (
                   <Card key={index} sx={{ width: 240, borderRadius: 3 }}>
@@ -198,7 +273,6 @@ const ProfessorDashboard = () => {
         </Box>
       </Box>
 
-      {/* Dialogs */}
       <AddOpportunityForm
         open={showForm}
         onClose={() => { setShowForm(false); setEditingOpportunity(null); }}
