@@ -11,6 +11,7 @@ import EditIcon from '@mui/icons-material/Edit';     // For Edit button
 import DeleteIcon from '@mui/icons-material/Delete'; // For Delete button
 import AddIcon from '@mui/icons-material/Add';       // For Add Experience button
 import ExperienceForm from './ExperienceForm'; // Assuming it's in the same directory
+import ConfirmationDialog from '../common/ConfirmationDialog'; // Adjust path if needed
 
 // --- Define the tag limit ---
 const TAG_LIMIT = 15;
@@ -59,6 +60,11 @@ const StudentExperienceResearch = ({ studentData }) => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('info');
+
+  // --- State for Confirmation Dialog ---
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [itemToDeleteId, setItemToDeleteId] = useState(null); // Store ID to delete
+  // --- End Confirmation State ---
 
   // Use authenticated user's ID
   const userId = auth.currentUser?.uid; // Define userId here
@@ -226,34 +232,45 @@ const StudentExperienceResearch = ({ studentData }) => {
   };
 
 
-  const handleDeleteExperience = async (experienceId) => {
-    // const currentUser = auth.currentUser; // Use userId defined earlier
-    if (!userId) { // Use userId
-        showSnackbar("Authentication error. Cannot delete.", "error");
-        return;
-    }
-    if (isSavingExperience) return;
+  // --- Modify handleDeleteExperience to OPEN confirmation dialog ---
+  const handleDeleteExperience = (experienceId) => {
+    if (!userId) { showSnackbar("Authentication error.", "error"); return; }
+    if (isSavingExperience) return; // Prevent double clicks
 
-    if (!window.confirm("Are you sure you want to delete this experience entry? This action cannot be undone.")) {
-        return;
-    }
+    // Set the ID of the item we intend to delete
+    setItemToDeleteId(experienceId);
+    // Open the confirmation dialog
+    setConfirmDialogOpen(true);
+  };
+  // --- End Modification ---
 
-    setIsSavingExperience(true);
-    // setCrudError(null); // Remove if not using crudError state
+  // --- NEW Handler: Executes when user confirms deletion in the dialog ---
+  const confirmDeleteExperience = async () => {
+    if (!itemToDeleteId || !userId) {
+        console.error("Deletion error: Missing ID or userId");
+         setConfirmDialogOpen(false); // Close dialog anyway
+         setItemToDeleteId(null); // Reset ID
+         showSnackbar("Could not delete item: Missing information.", "error");
+        return;
+     }
+
+    setIsSavingExperience(true); // Indicate processing START
+    setConfirmDialogOpen(false); // Close the dialog immediately
 
     try {
-        const experienceDocRef = doc(db, 'users', userId, 'experiences', experienceId);
+        const experienceDocRef = doc(db, 'users', userId, 'experiences', itemToDeleteId);
         await deleteDoc(experienceDocRef);
-        console.log("Experience deleted successfully:", experienceId);
-        showSnackbar("Experience deleted successfully.", 'success'); // Show success message
+        console.log("Experience deleted successfully:", itemToDeleteId);
+        showSnackbar("Experience deleted successfully.", 'success');
     } catch (err) {
         console.error("Error deleting experience:", err);
-        showSnackbar(`Failed to delete experience: ${err.message}`, 'error'); // Show error message
+        showSnackbar(`Failed to delete experience: ${err.message}`, 'error');
     } finally {
-        setIsSavingExperience(false);
+        setIsSavingExperience(false); // Indicate processing END
+        setItemToDeleteId(null); // Reset the ID after attempt
     }
   };
-  // --- End Experience CRUD Handlers ---
+  // --- End New Handler ---
 
 
   // Group experiences by type for rendering
@@ -272,7 +289,7 @@ const StudentExperienceResearch = ({ studentData }) => {
     <Box sx={{p:3}}>
       {/* --- Tags Section --- */}
       {/* --- Tags Section (Keep as is, uses tagError state for inline feedback) --- */}
-      <Typography variant="h5" gutterBottom> My Experience & Research Interests </Typography>
+      <Typography variant="h5" gutterBottom> My Skills and Interests </Typography>
        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}> Add relevant keywords, skills, or research. Max {TAG_LIMIT}. </Typography>
        <Box component="form" onSubmit={(e) => { e.preventDefault(); handleAddTag(); }} sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 3 }}>
              <TextField label={limitReached ? `Tag limit (${TAG_LIMIT}) reached` : "Add New Tag"} variant="outlined" size="small" value={newTag} onChange={(e) => setNewTag(e.target.value)} disabled={isProcessingTag || limitReached} sx={{ flexGrow: 1 }} />
@@ -305,9 +322,9 @@ const StudentExperienceResearch = ({ studentData }) => {
                 <Typography variant="h6" gutterBottom sx={{ fontWeight: 'medium', textTransform: 'capitalize' }}>
                     {/* Simple title based on type */}
                     {type === 'work' ? 'Work Experience' :
-                     type === 'research' ? 'Research Experience' :
+                     type === 'research' ? 'Research' :
                      type === 'project' ? 'Projects' :
-                     type === 'volunteer' ? 'Volunteer Experience' :
+                     type === 'volunteer' ? 'Volunteer' :
                      'Other Experience' }
                 </Typography>
                 <Stack spacing={2}>
@@ -353,6 +370,18 @@ const StudentExperienceResearch = ({ studentData }) => {
           userId={userId} // Pass current user's ID
           isSaving={isSavingExperience} // Pass saving state to disable form controls
        />
+
+       {/* --- Render Confirmation Dialog --- */}
+       <ConfirmationDialog
+                open={confirmDialogOpen}
+                onClose={() => setConfirmDialogOpen(false)} // Close handler
+                onConfirm={confirmDeleteExperience} // Handler for confirm button
+                title="Confirm Deletion"
+                message="Are you sure you want to delete this experience entry? This action cannot be undone."
+                confirmText="Delete"
+                isProcessing={isSavingExperience} // Disable buttons while deleting
+        />
+        {/* --- End Confirmation Dialog --- */}
 
        {/* --- Snackbar Component (NEW) --- */}
        <Snackbar open={snackbarOpen} autoHideDuration={5000} onClose={handleSnackbarClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>

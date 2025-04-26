@@ -475,7 +475,7 @@ const ProfessorDashboard = () => {
 
   // Only proceed to render dashboard content if professorData is loaded and role check passed
   if (!professorData) {
-    return ( <DashboardLayout handleSignOut={handleSignOut}><Typography>Error loading data or unauthorized.</Typography></DashboardLayout>);
+    return ( <DashboardLayout><Typography>Error loading data or unauthorized.</Typography></DashboardLayout>);
   }
 
   const photoLink = professorData?.photoLink || '';
@@ -486,7 +486,7 @@ const ProfessorDashboard = () => {
   console.log("ProfessorDashboard Rendering:", { loadingOpportunities, opportunitiesCount: opportunities.length });
 
   return (
-    <DashboardLayout handleSignOut={handleSignOut} dashboardPath='/professor-dashboard'>
+    <DashboardLayout>
       <Box sx={{ mb: 3, textAlign: 'center' }}>
          <Typography variant="h4" gutterBottom> Professor Dashboard </Typography>
          {professorData && ( <Typography variant="h6" color="text.secondary"> Welcome, {professorData.name || 'Professor'}! </Typography> )}

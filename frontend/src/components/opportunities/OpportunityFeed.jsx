@@ -1,13 +1,19 @@
 /* eslint-disable no-unused-vars */
 // src/components/opportunities/OpportunityFeed.jsx
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, CircularProgress, Alert, ToggleButtonGroup, ToggleButton } from '@mui/material';
+import { Box, Typography, CircularProgress, Alert as MuiAlert, ToggleButtonGroup, ToggleButton, Snackbar, Stack } from '@mui/material';
 // Import necessary Firestore functions and auth
 import { collection, query, where, orderBy, getDocs, addDoc, doc, getDoc, Timestamp, deleteDoc, limit } from 'firebase/firestore';
 import { db, auth } from '../../firebase'; // Adjust path if needed
 import OpportunityListItem from './OpportunityListItem'; // Adjust path if needed
 import ViewListIcon from '@mui/icons-material/ViewList'; // Icon for All
 import StarIcon from '@mui/icons-material/Star'; // Icon for Interested
+
+// --- Snackbar Alert ForwardRef ---
+const Alert = React.forwardRef(function Alert(props, ref) {
+  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
+});
+// --- End Snackbar Alert ---
 
 const OpportunityFeed = () => {
   const [opportunities, setOpportunities] = useState([]);
@@ -23,6 +29,12 @@ const OpportunityFeed = () => {
 
   // --- New state to track removal processing ---
   const [processingRemovalId, setProcessingRemovalId] = useState(null);
+
+  // --- Add Snackbar State ---
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState('info');
+  // --- End Snackbar State ---
 
 
   // --- Modified useEffect to fetch both opportunities and interests ---
@@ -98,127 +110,133 @@ const OpportunityFeed = () => {
   }, []); // Run only on mount
 
 
-  // --- Handler Function for Marking Interest ---
-  const handleMarkInterest = async (opportunityId, professorId) => {
-    // 1. Check if user is logged in
-    if (!auth.currentUser) {
-      alert("Please log in to mark your interest."); // Or use a more sophisticated notification
-      return;
-    }
-    // Prevent multiple simultaneous requests for different items
-    if (processingInterestId) return;
+  // --- Add Snackbar Handlers ---
+  const handleSnackbarClose = (event, reason) => {
+    if (reason === 'clickaway') { return; }
+    setSnackbarOpen(false);
+};
+const showSnackbar = (message, severity = 'info') => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
+};
+// --- End Snackbar Handlers ---
 
-    const studentId = auth.currentUser.uid;
-    setProcessingInterestId(opportunityId); // Set loading state for this specific item
-    setFeedError(null); // Clear previous errors specific to the feed loading
 
-    try {
-      // 1. Fetch student profile data (name, resume link, AND photo link)
-      const studentDocRef = doc(db, 'users', studentId);
-      const studentDocSnap = await getDoc(studentDocRef);
-      if (!studentDocSnap.exists()) {
-        throw new Error("Could not find your student profile data.");
+  // --- Modify handleMarkInterest ---
+    // Now accepts the full opportunity object
+    const handleMarkInterest = async (opportunity) => {
+      // Destructure needed fields, including deadline
+      const { id: opportunityId, professorId, deadline } = opportunity;
+
+      // --- Deadline Check ---
+      if (deadline && deadline.toDate) { // Check if deadline exists and is a Firestore Timestamp
+          const deadlineDate = deadline.toDate();
+          const today = new Date();
+          // Consider deadline as end of day
+          deadlineDate.setHours(23, 59, 59, 999);
+
+          if (today > deadlineDate) {
+              showSnackbar("The application deadline for this opportunity has passed.", "warning");
+              return; // Stop execution
+          }
       }
-      const studentData = studentDocSnap.data();
-      const studentName = studentData.name || 'Unknown Student';
-      const studentEmail = auth.currentUser.email;
-      const studentResumeLink = studentData.resumeLink || '';
-      // --- Get the photo link ---
-      const studentPhotoLink = studentData.photoLink || ''; // Get photoLink, default to empty string
+      // --- End Deadline Check ---
 
-      // 2. Prepare interest data (including photo link)
-      const interestData = {
-        opportunityId: opportunityId,
-        studentId: studentId,
-        professorId: professorId,
-        studentName: studentName,
-        studentEmail: studentEmail,
-        studentResumeLink: studentResumeLink,
-        studentPhotoLink: studentPhotoLink, // <-- Add photo link here
-        timestamp: Timestamp.now()
-      };
+      // 1. Check if user is logged in
+      if (!auth.currentUser) {
+           showSnackbar("Please log in to mark your interest.", "error"); // Use Snackbar
+          return;
+      }
+      if (processingInterestId) return; // Prevent multiple clicks
 
-      // 3. Add the interest document
-      const interestsCollectionRef = collection(db, 'interests');
-      await addDoc(interestsCollectionRef, interestData);
+      const studentId = auth.currentUser.uid;
+      setProcessingInterestId(opportunityId);
+      setFeedError(null);
 
-      // 4. Update Local State Immediately
-      setInterestedOpportunityIds(prevSet => new Set(prevSet).add(opportunityId));
+      try {
+          // Fetch student profile data
+          const studentDocRef = doc(db, 'users', studentId);
+          const studentDocSnap = await getDoc(studentDocRef);
+          if (!studentDocSnap.exists()) throw new Error("Could not find student profile.");
+          const studentData = studentDocSnap.data();
+          const studentName = studentData.name || 'Unknown Student';
+          const studentEmail = auth.currentUser.email;
+          const studentResumeLink = studentData.resumeLink || '';
+          const studentPhotoLink = studentData.photoLink || '';
 
-      console.log("Interest marked successfully for:", opportunityId);
-      alert("Interest marked successfully!");
+          // Prepare interest data
+          const interestData = {
+              opportunityId: opportunityId, studentId: studentId, professorId: professorId,
+              studentName: studentName, studentEmail: studentEmail,
+              studentResumeLink: studentResumeLink, studentPhotoLink: studentPhotoLink,
+              timestamp: Timestamp.now()
+          };
 
-    } catch (err) {
-        // Check if the error is specifically permission denied on CREATE
-        if (err.code === 'permission-denied') {
-             alert("Permission denied. Ensure you are logged in as a student.");
-        } else {
-             alert(`Failed to mark interest: ${err.message}`);
-        }
-        console.error("Error marking interest:", err);
-        alert(`Failed to mark interest: ${err.message}`)
-    } finally {
-      // Reset the loading state for this item regardless of success/failure
-      setProcessingInterestId(null);
-    }
+          // Add interest document
+          const interestsCollectionRef = collection(db, 'interests');
+          await addDoc(interestsCollectionRef, interestData);
+
+          // Update Local State
+          setInterestedOpportunityIds(prevSet => new Set(prevSet).add(opportunityId));
+          console.log("Interest marked successfully for:", opportunityId);
+          showSnackbar("Interest marked successfully!", "success"); // Use Snackbar
+
+      } catch (err) {
+           console.error("Error marking interest:", err);
+           // Check for permission denied specifically if needed
+          // if (err.code === 'permission-denied') { ... } else { ... }
+           showSnackbar(`Failed to mark interest: ${err.message}`, 'error'); // Use Snackbar
+      } finally {
+          setProcessingInterestId(null);
+      }
   };
-  // --- End Handler ---
+  // --- End handleMarkInterest modification ---
 
 
-  // --- Handler Function for Removing Interest ---
+  // --- Modify handleRemoveInterest for Snackbar ---
   const handleRemoveInterest = async (opportunityId) => {
     if (!auth.currentUser) {
-      alert("Please log in.");
-      return;
+        showSnackbar("Please log in.", "error"); // Use Snackbar
+        return;
     }
-    // Prevent clicking if another add/remove is processing
     if (processingInterestId || processingRemovalId) return;
 
     const studentId = auth.currentUser.uid;
-    setProcessingRemovalId(opportunityId); // Set processing state for removal
+    setProcessingRemovalId(opportunityId);
     setFeedError(null);
 
     try {
-      // 1. Find the specific interest document ID to delete
-      const interestsCollectionRef = collection(db, 'interests');
-      const interestQuery = query(
-        interestsCollectionRef,
-        where('opportunityId', '==', opportunityId),
-        where('studentId', '==', studentId),
-        limit(1) // We only expect one match
-      );
-      const interestSnap = await getDocs(interestQuery);
+        // Find the interest document ID
+        const interestsCollectionRef = collection(db, 'interests');
+        const interestQuery = query( interestsCollectionRef, where('opportunityId', '==', opportunityId), where('studentId', '==', studentId), limit(1) );
+        const interestSnap = await getDocs(interestQuery);
 
-      if (interestSnap.empty) {
-        // If the button was shown, the record should exist, but handle defensively
-        console.warn("Tried to remove interest, but couldn't find the record for opportunity:", opportunityId);
-        throw new Error("Could not find the interest record to remove.");
-      }
+        if (interestSnap.empty) {
+            throw new Error("Could not find the interest record to remove.");
+        }
+        // Delete the document
+        const interestDocId = interestSnap.docs[0].id;
+        const interestDocRef = doc(db, 'interests', interestDocId);
+        await deleteDoc(interestDocRef);
 
-      // 2. Get the document ID and delete the document
-      const interestDocId = interestSnap.docs[0].id;
-      const interestDocRef = doc(db, 'interests', interestDocId);
-      // Security Rule Check: The existing 'delete' rule for interests should allow this
-      await deleteDoc(interestDocRef);
-
-      // 3. Update local state immediately to reflect removal
-      setInterestedOpportunityIds(prevSet => {
-        const newSet = new Set(prevSet);
-        newSet.delete(opportunityId); // Remove the ID from the local set
-        return newSet;
-      });
-
-      console.log("Interest removed successfully for:", opportunityId);
-      alert("Interest removed successfully!");
+        // Update local state
+        setInterestedOpportunityIds(prevSet => {
+            const newSet = new Set(prevSet);
+            newSet.delete(opportunityId);
+            return newSet;
+        });
+        console.log("Interest removed successfully for:", opportunityId);
+         showSnackbar("Interest removed successfully!", "success"); // Use Snackbar
 
     } catch (err) {
-      console.error("Error removing interest:", err);
-      alert(`Failed to remove interest: ${err.message}`);
+        console.error("Error removing interest:", err);
+        showSnackbar(`Failed to remove interest: ${err.message}`, 'error'); // Use Snackbar
     } finally {
-      setProcessingRemovalId(null); // Reset processing state for removal
+        setProcessingRemovalId(null);
     }
   };
-  // --- End Handler ---
+  // --- End handleRemoveInterest modification ---
 
 
   // --- Handler for changing the view ---
@@ -235,7 +253,7 @@ const OpportunityFeed = () => {
     : opportunities.filter(opp => interestedOpportunityIds.has(opp.id)); // Show only interested ones otherwise
 
     return (
-        <Box>
+        <Box sx={{ p: 2}}>
           {/* View Toggle Buttons */}
           <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
             <ToggleButtonGroup
@@ -276,27 +294,47 @@ const OpportunityFeed = () => {
 
           {/* Display Filtered Opportunities List */}
           {!loading && !feedError && opportunitiesToDisplay.length > 0 && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-              {/* Map over the FILTERED array */}
-              {opportunitiesToDisplay.map((opp) => {
-                const isAlreadyInterested = interestedOpportunityIds.has(opp.id);
-                return (
-                  <OpportunityListItem
-                    key={opp.id}
-                    opportunity={opp}
-                    viewMode="student"
-                    onMarkInterest={handleMarkInterest}
-                    isProcessingInterest={processingInterestId === opp.id}
-                    isAlreadyInterested={isAlreadyInterested}
-                    // We will add onRemoveInterest next
-                    // --- Pass down the new handler and state ---
-                    onRemoveInterest={handleRemoveInterest}
-                    isProcessingRemoval={processingRemovalId === opp.id}
-                  />
-                );
-              })}
-            </Box>
-          )}
+                 // Use Stack for consistent spacing between items
+                 <Stack spacing={2} sx={{ mt: 2 }}>
+                    {opportunitiesToDisplay.map((opp) => {
+                        const isAlreadyInterested = interestedOpportunityIds.has(opp.id);
+                        // --- Calculate deadlinePassed here ---
+                        let deadlinePassed = false;
+                        if (opp.deadline?.toDate) {
+                            const deadlineDate = opp.deadline.toDate();
+                            const today = new Date();
+                            deadlineDate.setHours(23, 59, 59, 999); // End of deadline day
+                            deadlinePassed = today > deadlineDate;
+                        }
+                        // --- End deadline check ---
+
+                        return (
+                            <OpportunityListItem
+                                key={opp.id}
+                                opportunity={opp}
+                                viewMode="student"
+                                // Pass the handler wrapped to include the opp object implicitly
+                                onMarkInterest={() => handleMarkInterest(opp)}
+                                isProcessingInterest={processingInterestId === opp.id}
+                                isAlreadyInterested={isAlreadyInterested}
+                                onRemoveInterest={handleRemoveInterest} // Pass opportunityId directly? Or modify handler
+                                isProcessingRemoval={processingRemovalId === opp.id}
+                                // --- Pass deadlinePassed prop ---
+                                deadlinePassed={deadlinePassed}
+                                // --- End pass prop ---
+                            />
+                        );
+                    })}
+                 </Stack>
+            )}
+
+             {/* --- Add Snackbar Component --- */}
+             <Snackbar open={snackbarOpen} autoHideDuration={6000} onClose={handleSnackbarClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+                 <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
+                     {snackbarMessage}
+                 </Alert>
+             </Snackbar>
+             {/* --- End Snackbar --- */}
         </Box>
       );
 };
