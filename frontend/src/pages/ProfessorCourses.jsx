@@ -142,8 +142,8 @@ const ProfessorCourses = () => {
  }
 
   return (
-    <Box>
-     <Typography variant="h4" gutterBottom>
+    <Box sx={{ p: 3 }}>
+     <Typography variant="h5" gutterBottom>
        My Courses
      </Typography>
 
