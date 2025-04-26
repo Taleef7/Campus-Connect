@@ -10,6 +10,8 @@ import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { jwtDecode } from "jwt-decode";
 import { GoogleLogin } from "@react-oauth/google";
 
+import SnackbarMessage from '../components/common/SnackbarMessage';
+
 const StudentAuth = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -24,15 +26,20 @@ const StudentAuth = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState('info');
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErrorMsg('');
     setLoading(true);
 
     try {
       if (isSignup) {
         if (!name || !email || !password) {
-          setErrorMsg('Please fill in all required fields.');
+          setSnackbarMessage('Please fill in all required fields.');
+          setSnackbarSeverity('warning');
+          setSnackbarOpen(true);
           setLoading(false);
           return;
         }
@@ -48,17 +55,15 @@ const StudentAuth = () => {
         try {
             await sendEmailVerification(user);
             console.log("Verification email sent to:", user.email);
-            // **IMPORTANT**: Inform the user, DO NOT navigate directly to dashboard yet
-            setErrorMsg(''); // Clear previous errors
-            alert("Signup successful! Please check your email (" + user.email + ") for a verification link to activate your account before logging in."); // Simple alert, consider a better UI
-            // Optionally clear the form fields here
+            setSnackbarMessage(`Signup successful! Please verify your email (${user.email}).`);
+            setSnackbarSeverity('success');
+            setSnackbarOpen(true);
             setName(''); setMajor(''); setEmail(''); setPassword('');
-            // You might redirect to the login page or stay here
-            // navigate('/student-login');
         } catch (verificationError) {
             console.error("Error sending verification email:", verificationError);
-            // Handle case where user/doc created but email failed? Maybe show error message.
-            setErrorMsg("Account created, but failed to send verification email. Please contact support or try logging in later.");
+            setSnackbarMessage('Account created, but failed to send verification email. Please contact support.');
+            setSnackbarSeverity('warning');
+            setSnackbarOpen(true);
         }
         // navigate('/student-dashboard');
       } else {
@@ -79,42 +84,49 @@ const StudentAuth = () => {
                   console.log("User email not verified, attempting to resend verification email.");
                   try {
                       await sendEmailVerification(user);
-                      alert('Please verify your email address before logging in. A new verification link has been sent to your inbox (check spam too).'); // Update alert message
+                      setSnackbarMessage('Please verify your email. A new verification link was sent.');
+                      setSnackbarSeverity('warning');
+                      setSnackbarOpen(true);
                   } catch (verificationError) {
                       console.error("Error resending verification email:", verificationError);
-                      alert('Please verify your email. We attempted to resend the verification link, but failed. Please try again later or contact support.');
+                      setSnackbarMessage('Failed to resend verification email. Please try again later.');
+                      setSnackbarSeverity('error');
+                      setSnackbarOpen(true);
                   }
-                  await signOut(auth); // Sign out after attempting resend
-                  // setErrorMsg('Please verify your email address before logging in. Check your inbox for the verification link.'); // Use alert instead maybe
+                  await signOut(auth); 
                   // --- END RESEND ---
               }
             } else {
                 await signOut(auth); // Sign out if role is wrong or doc missing
-                setErrorMsg('Access denied. Please use the correct portal or use valid credentials.');
+                setSnackbarMessage('Access denied. Please use the correct portal.');
+                setSnackbarSeverity('error');
+                setSnackbarOpen(true);
             }
         } else {
-             setErrorMsg('Login failed. Please try again.'); // Should not happen if signIn succeeded
+          setSnackbarMessage('Login failed. Please try again.');
+          setSnackbarSeverity('error');
+          setSnackbarOpen(true);
         }
       }
     } catch (error) {
        console.error("Auth Error:", error);
        // Provide more user-friendly messages
-        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-            setErrorMsg('Invalid email or password.');
-        } else if (error.code === 'auth/email-already-in-use') {
-            setErrorMsg('This email is already registered. Please log in.');
-        }
-        else {
-            setErrorMsg('An error occurred. Please try again.');
-        }
-    } finally { // Use finally to ensure loading is always set to false
-       setLoading(false);
+       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        setSnackbarMessage('Invalid email or password.');
+      } else if (error.code === 'auth/email-already-in-use') {
+        setSnackbarMessage('This email is already registered. Please log in.');
+      } else {
+        setSnackbarMessage('An error occurred. Please try again.');
+      }
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleGoogleLoginSuccess = async (credentialResponse) => {
       setLoading(true);
-      setErrorMsg('');
       try {
         const credentialResponseDecoded = jwtDecode(credentialResponse.credential);
         const { name, email } = credentialResponseDecoded;
@@ -140,12 +152,16 @@ const StudentAuth = () => {
             } else {
                 // If existing user is not a student, sign out and show error
                 await signOut(auth);
-                setErrorMsg('Access denied. This account is not registered as a student.');
+                setSnackbarMessage('Access denied. This account is not registered as a student.');
+                setSnackbarSeverity('error');
+                setSnackbarOpen(true);
             }
         }
       } catch (error) {
         console.error("Google Sign-In Error:", error);
-        setErrorMsg('Google Sign-In failed. Please try again.');
+        setSnackbarMessage('Google Sign-In failed. Please try again.');
+        setSnackbarSeverity('error');
+        setSnackbarOpen(true);
       } finally {
          setLoading(false);
       }
@@ -186,11 +202,10 @@ const StudentAuth = () => {
 
       <Box sx={{ mt: 2 }}> {/* Wrap Google Login for margin */}
           <GoogleLogin
-            // clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID} // Use env var if set up
             onSuccess={handleGoogleLoginSuccess}
-            onError={() => { console.error("Google Login Failed"); setErrorMsg('Google login failed.');}}
-            // theme="filled_blue" // Optional styling
-            // size="large" // Optional styling
+            onError={() => { console.error("Google Login Failed"); setSnackbarMessage('Google login failed.');
+              setSnackbarSeverity('error');
+              setSnackbarOpen(true);}}
           />
       </Box>
 
@@ -202,6 +217,13 @@ const StudentAuth = () => {
       <Button variant="outlined" onClick={() => navigate('/')} sx={{ mt: 2 }}>
         Back to Landing
       </Button>
+      
+      <SnackbarMessage
+        open={snackbarOpen}
+        message={snackbarMessage}
+        severity={snackbarSeverity}
+        onClose={() => setSnackbarOpen(false)}
+      />
     </Box>
   );
 };

@@ -10,6 +10,8 @@ import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { jwtDecode } from "jwt-decode";
 import { GoogleLogin } from "@react-oauth/google";
 
+import SnackbarMessage from '../components/common/SnackbarMessage';
+
 const ProfessorAuth = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -24,6 +26,10 @@ const ProfessorAuth = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState('info');
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
@@ -31,8 +37,19 @@ const ProfessorAuth = () => {
 
     try {
       if (isSignup) {
+        const nameRegex = /^[a-zA-Z\s.'-]{2,50}$/;
+        if (!nameRegex.test(name.trim())) {
+          setSnackbarMessage('Invalid Name Entered');
+          setSnackbarSeverity('error');
+          setSnackbarOpen(true);
+          setLoading(false);
+          return;
+        }
+
         if (!name || !email || !password) {
-          setErrorMsg('Please fill in all required fields.');
+          setSnackbarMessage('Please fill in all required fields.');
+          setSnackbarSeverity('error');
+          setSnackbarOpen(true);
           setLoading(false);
           return;
         }
@@ -40,7 +57,7 @@ const ProfessorAuth = () => {
         const user = userCredential.user;
         await setDoc(doc(db, 'users', user.uid), {
           name, email, department,
-          role: 'professor', // Set role to professor
+          role: 'professor', 
           createdAt: new Date().toISOString(),
         });
 
@@ -48,20 +65,21 @@ const ProfessorAuth = () => {
         try {
             await sendEmailVerification(user);
             console.log("Verification email sent to:", user.email);
-            setErrorMsg(''); // Clear previous errors
-            alert("Signup successful! Please check your email (" + user.email + ") for a verification link to activate your account before logging in.");
+            setSnackbarMessage(`Signup successful! Please check your email (${user.email}) to verify your account.`);
+            setSnackbarSeverity('success');
+            setSnackbarOpen(true);
+            setLoading(false);
             setName(''); setDepartment(''); setEmail(''); setPassword('');
-            // navigate('/professor-login');
         } catch (verificationError) {
-            console.error("Error sending verification email:", verificationError);
-            setErrorMsg("Account created, but failed to send verification email. Please contact support or try logging in later.");
+          console.error("Error sending verification email:", verificationError);
+          setSnackbarMessage('Account created, but failed to send verification email. Please contact support.');
+          setSnackbarSeverity('error');
+          setSnackbarOpen(true);
         }
-
-        // navigate('/professor-dashboard');
       } else {
         // --- LOGIN LOGIC ---
         const userCredential = await signInWithEmailAndPassword(auth, email, password); // Get credential
-        const user = userCredential.user; // Get user
+        const user = userCredential.user; 
 
         if (user) {
             const docRef = doc(db, 'users', user.uid);
@@ -75,40 +93,48 @@ const ProfessorAuth = () => {
                   console.log("User email not verified, attempting to resend verification email.");
                   try {
                       await sendEmailVerification(user);
-                      alert('Please verify your email address before logging in. A new verification link has been sent to your inbox (check spam too).');
+                      setSnackbarMessage('Please verify your email address. We resent a new verification link.');
+                      setSnackbarSeverity('warning');
+                      setSnackbarOpen(true);
                   } catch (verificationError) {
                       console.error("Error resending verification email:", verificationError);
-                      alert('Please verify your email. We attempted to resend the verification link, but failed. Please try again later or contact support.');
+                      setSnackbarMessage('Failed to resend verification link. Please try again later.');
+                      setSnackbarSeverity('error');
+                      setSnackbarOpen(true);
                   }
                   await signOut(auth);
                   // --- END RESEND ---
               }
             } else {
-                await signOut(auth); // Sign out if role is wrong or doc missing
-                setErrorMsg('Access denied. Please use the correct portal or use valid credentials.');
+                await signOut(auth);
+                setSnackbarMessage('Access denied. Please use the correct portal.');
+                setSnackbarSeverity('error');
+                setSnackbarOpen(true);
             }
         } else {
-             setErrorMsg('Login failed. Please try again.');
+          setSnackbarMessage('Login failed. Please try again.');
+          setSnackbarSeverity('error');
+          setSnackbarOpen(true);
         }
       }
     } catch (error) {
-        console.error("Auth Error:", error);
-         if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-             setErrorMsg('Invalid email or password.');
-         } else if (error.code === 'auth/email-already-in-use') {
-            setErrorMsg('This email is already registered. Please log in.');
-        }
-         else {
-             setErrorMsg('An error occurred. Please try again.');
-         }
+      console.error("Auth Error:", error);
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        setSnackbarMessage('Invalid email or password.');
+      } else if (error.code === 'auth/email-already-in-use') {
+        setSnackbarMessage('This email is already registered. Please log in.');
+      } else {
+        setSnackbarMessage('An error occurred. Please try again.');
+      }
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
 const handleGoogleLoginSuccess = async (credentialResponse) => {
     setLoading(true);
-    setErrorMsg('');
     try {
         const credentialResponseDecoded = jwtDecode(credentialResponse.credential);
         const { name, email } = credentialResponseDecoded;
@@ -120,26 +146,27 @@ const handleGoogleLoginSuccess = async (credentialResponse) => {
         const userSnap = await getDoc(userRef);
 
         if (!userSnap.exists()) {
-          // If user doesn't exist, create them with professor role
           await setDoc(userRef, {
-            name, email, department: "", // Default department
+            name, email, department: "",
             role: "professor",
             createdAt: new Date().toISOString(),
           });
            navigate("/professor-dashboard");
         } else {
-             // If user exists, check their role
             if (userSnap.data().role === 'professor') {
                  navigate("/professor-dashboard");
             } else {
-                 // If existing user is not a professor, sign out and show error
                 await signOut(auth);
-                setErrorMsg('Access denied. This account is not registered as a professor.');
+                setSnackbarMessage('Access denied. This account is not registered as a professor.');
+                setSnackbarSeverity('error');
+                setSnackbarOpen(true);
             }
         }
     } catch (error) {
         console.error("Google Sign-In Error:", error);
-         setErrorMsg('Google Sign-In failed. Please try again.');
+        setSnackbarMessage('Google Sign-In failed. Please try again.');
+        setSnackbarSeverity('error');
+        setSnackbarOpen(true);
     } finally {
         setLoading(false);
     }
@@ -167,10 +194,9 @@ const handleGoogleLoginSuccess = async (credentialResponse) => {
           </>
         )}
         <TextField label="Email" variant="outlined" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
-         {/* Add inputProps to the password field */}
         <TextField
           label="Password" variant="outlined" type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
-          inputProps={{ autoComplete: isSignup ? 'new-password' : 'current-password' }} // Use new-password for signup
+          inputProps={{ autoComplete: isSignup ? 'new-password' : 'current-password' }}
         />
 
         <Button type="submit" variant="contained" disabled={loading}>
@@ -178,11 +204,12 @@ const handleGoogleLoginSuccess = async (credentialResponse) => {
         </Button>
       </Box>
 
-       <Box sx={{ mt: 2 }}> {/* Wrap Google Login for margin */}
+       <Box sx={{ mt: 2 }}>
           <GoogleLogin
-            // clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID} // Use env var if set up
             onSuccess={handleGoogleLoginSuccess}
-            onError={() => { console.error("Google Login Failed"); setErrorMsg('Google login failed.');}}
+            onError={() => { console.error("Google Login Failed"); setSnackbarMessage('Google login failed.');
+              setSnackbarSeverity('error');
+              setSnackbarOpen(true);;}}
           />
        </Box>
 
@@ -193,6 +220,12 @@ const handleGoogleLoginSuccess = async (credentialResponse) => {
       <Button variant="outlined" onClick={() => navigate('/')} sx={{ mt: 2 }}>
         Back to Landing
       </Button>
+      <SnackbarMessage
+        open={snackbarOpen}
+        message={snackbarMessage}
+        severity={snackbarSeverity}
+        onClose={() => setSnackbarOpen(false)}
+      />
     </Box>
   );
 };
