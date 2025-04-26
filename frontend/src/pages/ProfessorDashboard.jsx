@@ -1,4 +1,3 @@
-// src/pages/ProfessorDashboard.jsx
 import React, { useState, useEffect } from 'react';
 import {
   Box, Typography, Paper, Button, CircularProgress,
@@ -129,52 +128,111 @@ const ProfessorDashboard = () => {
 
   return (
     <DashboardLayout dashboardPath="/professor-dashboard" handleSignOut={() => signOut(auth)}>
-      <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#E7F6F2' }}>
-        <Box sx={{ width: 320, backgroundColor: '#2C3333', p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between' }}>
+      <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+        {/* Sidebar */}
+        <Box sx={{ width: 320, backgroundColor: '#f3f3f3', p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box width="100%">
             <ProfileHeader professorData={professorData} user={user} />
             <ProfileInfoSection professorData={professorData} user={user} />
           </Box>
-          <Button fullWidth variant="outlined" onClick={() => signOut(auth).then(() => window.location.href = '/')} sx={{ mt: 4, backgroundColor: 'white', color: '#2C3333', '&:hover': { backgroundColor: '#395B64', color: 'white' } }}>
+          <Button
+            variant="outlined"
+            color="error"
+            sx={{ mt: 4 }}
+            fullWidth
+            onClick={() => signOut(auth).then(() => window.location.href = '/')}
+          >
             Sign Out
           </Button>
         </Box>
 
-        <Box sx={{ flexGrow: 1, p: 4 }}>
+        {/* Main Content */}
+        <Box sx={{ flexGrow: 1, p: 4, backgroundColor: '#f9f9f9' }}>
           {tabValue === null ? (
             <>
+              {/* Cover Image with Edit */}
               <Box sx={{ position: 'relative', height: 240, mb: 3, borderRadius: 4, overflow: 'hidden' }}>
-                <Box sx={{ width: '100%', height: '100%', backgroundImage: `url(${professorData.coverLink || 'https://source.unsplash.com/1600x400/?library'})`, backgroundSize: 'cover', backgroundPosition: 'center', borderRadius: 4 }} />
-                <input type="file" accept="image/*" id="cover-upload" style={{ display: 'none' }} onChange={async (e) => {
-                  const file = e.target.files[0];
-                  if (!file || !user?.uid || !professorData?.id) return;
-                  try {
-                    const options = { maxSizeMB: 0.5, maxWidthOrHeight: 800, useWebWorker: true };
-                    const compressedFile = await imageCompression(file, options);
-                    const reader = new FileReader();
-                    reader.onloadend = async () => {
-                      const base64 = reader.result;
-                      await updateDoc(doc(db, 'users', professorData.id), { coverLink: base64 });
-                      setProfessorData(prev => ({ ...prev, coverLink: base64 }));
-                    };
-                    reader.readAsDataURL(compressedFile);
-                  } catch (err) {
-                    console.error("Error compressing/uploading cover:", err);
-                  }
-                }} />
-                <Button size="small" sx={{ position: 'absolute', top: 8, right: 8, fontSize: 10, backgroundColor: 'white', padding: '4px 8px', borderRadius: 2, boxShadow: 1, color: '#2C3333', '&:hover': { backgroundColor: '#395B64', color: 'white' } }} onClick={() => document.getElementById('cover-upload').click()}>
+                <Box
+                  sx={{
+                    width: '100%',
+                    height: '100%',
+                    backgroundImage: `url(${professorData.coverLink})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    borderRadius: 4,
+                  }}
+                />
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  id="cover-upload"
+                  style={{ display: 'none' }}
+                  onChange={async (e) => {
+                    const file = e.target.files[0];
+                    if (!file || !user?.uid || !professorData?.id) {
+                      console.error("Missing file or user info");
+                      return;
+                    }
+
+                    try {
+                      // Compress the image
+                      const options = {
+                        maxSizeMB: 0.5,
+                        maxWidthOrHeight: 800,
+                        useWebWorker: true,
+                      };
+                      const compressedFile = await imageCompression(file, options);
+
+                      // Convert to base64
+                      const reader = new FileReader();
+                      reader.onloadend = async () => {
+                        const base64 = reader.result;
+
+                        await updateDoc(doc(db, 'users', professorData.id), {
+                          coverLink: base64
+                        });
+
+                        setProfessorData((prev) => ({
+                          ...prev,
+                          coverLink: base64
+                        }));
+
+                        console.log("✅ Cover image uploaded to Firestore (base64).");
+                      };
+                      reader.readAsDataURL(compressedFile);
+                    } catch (err) {
+                      console.error("❌ Error compressing or uploading cover image:", err);
+                    }
+                  }}
+                />
+                <Button
+                  size="small"
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    fontSize: 10,
+                    backgroundColor: 'white',
+                    minWidth: 'auto',
+                    padding: '4px 8px',
+                    borderRadius: 2,
+                    boxShadow: 1,
+                  }}
+                  onClick={() => document.getElementById('cover-upload').click()}
+                >
                   🖼️
                 </Button>
               </Box>
+
+              {/* Dashboard cards */}
               <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3, mb: 4, flexWrap: 'wrap' }}>
                 {[expImg, coursesImg, oppImg].map((img, index) => (
-                  <Card key={index} sx={{ width: 240, borderRadius: 3, backgroundColor: '#A5C9CA' }}>
+                  <Card key={index} sx={{ width: 240, borderRadius: 3 }}>
                     <CardActionArea onClick={() => setTabValue(index)}>
                       <CardMedia component="img" height="140" image={img} alt={tabTitles[index]} />
                       <CardContent>
-                        <Typography gutterBottom variant="h6" sx={{ textAlign: 'center', fontWeight: 'bold', color: '#2C3333' }}>
-                          {tabTitles[index]}
-                        </Typography>
+                        <Typography gutterBottom variant="h6">{tabTitles[index]}</Typography>
                       </CardContent>
                     </CardActionArea>
                   </Card>
@@ -184,19 +242,28 @@ const ProfessorDashboard = () => {
           ) : (
             <Slide direction="up" in={tabValue !== null} mountOnEnter unmountOnExit>
               <Box>
-                <Typography variant="h5" fontWeight="bold" mb={2} sx={{ color: '#2C3333' }}>{tabTitles[tabValue]}</Typography>
-                <Button onClick={() => setTabValue(null)} sx={{ mb: 2, color: '#395B64' }}>← Back</Button>
+                <Typography variant="h5" fontWeight="bold" mb={2}>
+                  {tabTitles[tabValue]}
+                </Typography>
+                <Button onClick={() => setTabValue(null)} sx={{ mb: 2 }}>← Back</Button>
                 {tabValue === 0 && <ProfessorExperienceResearch professorData={professorData} />}
                 {tabValue === 1 && <ProfessorCourses />}
                 {tabValue === 2 && (
                   <>
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-                      <Button variant="contained" onClick={() => { setShowForm(true); setEditingOpportunity(null); }} sx={{ backgroundColor: '#2C3333', '&:hover': { backgroundColor: '#395B64' }, borderRadius: 2 }}>
+                      <Button variant="contained" onClick={() => { setShowForm(true); setEditingOpportunity(null); }}>
                         + Post New Opportunity
                       </Button>
                     </Box>
                     {opportunities.map((opp) => (
-                      <OpportunityListItem key={opp.id} opportunity={opp} onEdit={handleEditOpportunity} onDelete={handleDeleteOpportunity} onViewInterested={handleViewInterested} viewMode="professor" />
+                      <OpportunityListItem
+                        key={opp.id}
+                        opportunity={opp}
+                        onEdit={handleEditOpportunity}
+                        onDelete={handleDeleteOpportunity}
+                        onViewInterested={handleViewInterested}
+                        viewMode="professor"
+                      />
                     ))}
                   </>
                 )}
@@ -206,8 +273,22 @@ const ProfessorDashboard = () => {
         </Box>
       </Box>
 
-      <AddOpportunityForm open={showForm} onClose={() => { setShowForm(false); setEditingOpportunity(null); }} onSave={handleSaveOpportunity} professorId={user?.uid} initialData={editingOpportunity} />
-      <InterestedStudentsDialog open={Boolean(selectedOpportunityId)} onClose={handleCloseInterested} opportunityId={selectedOpportunityId} opportunityTitle={selectedOpportunityTitle} professorId={user?.uid} />
+      <AddOpportunityForm
+        open={showForm}
+        onClose={() => { setShowForm(false); setEditingOpportunity(null); }}
+        onSave={handleSaveOpportunity}
+        professorId={user?.uid}
+        initialData={editingOpportunity}
+      />
+
+      <InterestedStudentsDialog
+        open={Boolean(selectedOpportunityId)}
+        onClose={handleCloseInterested}
+        opportunityId={selectedOpportunityId}
+        opportunityTitle={selectedOpportunityTitle}
+        professorId={user?.uid}
+      />
+
       <Snackbar open={snackbarOpen} autoHideDuration={3000} onClose={() => setSnackbarOpen(false)}>
         <Alert severity="success" variant="filled">Opportunity saved successfully!</Alert>
       </Snackbar>

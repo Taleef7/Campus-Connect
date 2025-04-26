@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Button, CircularProgress, Slide, Card, CardContent, CardActionArea, CardMedia } from '@mui/material';
+import {
+  Box, Typography, Button, CircularProgress, Slide,
+  Card, CardContent, CardActionArea, CardMedia
+} from '@mui/material';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
-import imageCompression from 'browser-image-compression';
+import imageCompression from 'browser-image-compression'; // ✅ Importing image compression
 
 import DashboardLayout from '../components/dashboard/DashboardLayout';
 import StudentCoursesEnrolled from '../components/profile/StudentCoursesEnrolled';
@@ -56,7 +59,11 @@ const StudentDashboard = () => {
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64 = reader.result;
-        await updateDoc(doc(db, 'users', studentData.id), { coverLink: base64 });
+
+        await updateDoc(doc(db, 'users', studentData.id), {
+          coverLink: base64,
+        });
+
         console.log("✅ Cover uploaded successfully.");
         window.location.reload();
       };
@@ -71,19 +78,9 @@ const StudentDashboard = () => {
 
   return (
     <DashboardLayout dashboardPath="/student-dashboard" handleSignOut={() => signOut(auth)}>
-      <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#E7F6F2' }}>
+      <Box sx={{ display: 'flex', minHeight: '100vh' }}>
         {/* Sidebar */}
-        <Box
-          sx={{
-            width: 320,
-            backgroundColor: '#2C3333',
-            p: 3,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
+        <Box sx={{ width: 320, backgroundColor: '#f3f3f3', p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box width="100%">
             <ProfileHeader professorData={studentData} user={user} />
             <ProfileInfoSection professorData={studentData} user={user} />
@@ -91,17 +88,8 @@ const StudentDashboard = () => {
 
           <Button
             variant="outlined"
-            color="inherit"
-            sx={{
-              mt: 4,
-              backgroundColor: 'white',
-              color: '#2C3333',
-              fontWeight: 'bold',
-              '&:hover': {
-                backgroundColor: '#395B64',
-                color: 'white',
-              },
-            }}
+            color="error"
+            sx={{ mt: 4 }}
             fullWidth
             onClick={() => signOut(auth).then(() => window.location.href = '/')}
           >
@@ -110,7 +98,7 @@ const StudentDashboard = () => {
         </Box>
 
         {/* Main Content */}
-        <Box sx={{ flexGrow: 1, p: 4 }}>
+        <Box sx={{ flexGrow: 1, p: 4, backgroundColor: '#f9f9f9' }}>
           {tabValue === null ? (
             <>
               {/* Cover Image Section */}
@@ -144,11 +132,6 @@ const StudentDashboard = () => {
                     padding: '4px 8px',
                     borderRadius: 2,
                     boxShadow: 1,
-                    color: '#2C3333',
-                    '&:hover': {
-                      backgroundColor: '#395B64',
-                      color: 'white',
-                    },
                   }}
                   onClick={() => document.getElementById('cover-upload').click()}
                 >
@@ -159,13 +142,11 @@ const StudentDashboard = () => {
               {/* Dashboard Cards */}
               <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3, mb: 4, flexWrap: 'wrap' }}>
                 {[expImg, coursesImg, oppImg].map((img, index) => (
-                  <Card key={index} sx={{ width: 240, borderRadius: 3, backgroundColor: '#A5C9CA' }}>
+                  <Card key={index} sx={{ width: 240, borderRadius: 3 }}>
                     <CardActionArea onClick={() => setTabValue(index)}>
                       <CardMedia component="img" height="140" image={img} alt={tabTitles[index]} />
                       <CardContent>
-                        <Typography gutterBottom variant="h6" sx={{ textAlign: 'center', fontWeight: 'bold', color: '#2C3333' }}>
-                          {tabTitles[index]}
-                        </Typography>
+                        <Typography gutterBottom variant="h6">{tabTitles[index]}</Typography>
                       </CardContent>
                     </CardActionArea>
                   </Card>
@@ -175,15 +156,10 @@ const StudentDashboard = () => {
           ) : (
             <Slide direction="up" in={tabValue !== null} mountOnEnter unmountOnExit>
               <Box>
-                <Typography variant="h5" fontWeight="bold" mb={2} sx={{ color: '#2C3333' }}>
+                <Typography variant="h5" fontWeight="bold" mb={2}>
                   {tabTitles[tabValue]}
                 </Typography>
-                <Button
-                  onClick={() => setTabValue(null)}
-                  sx={{ mb: 2, color: '#395B64', fontWeight: 'bold' }}
-                >
-                  ← Back
-                </Button>
+                <Button onClick={() => setTabValue(null)} sx={{ mb: 2 }}>← Back</Button>
 
                 {tabValue === 0 && <StudentExperienceResearch studentData={studentData} />}
                 {tabValue === 1 && <StudentCoursesEnrolled />}
