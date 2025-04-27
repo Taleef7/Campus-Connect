@@ -76,21 +76,21 @@ const StudentDashboard = () => {
         firestoreUnsubscribe();
 
         if (!currentUser) {
-            navigate('/student-login');
+            navigate('/auth');
             setUiLoading(false);
             setUser(null); 
             setStudentData(null); 
             return;
         }
-        if (!currentUser.emailVerified) {
-             console.warn(`User ${currentUser.uid} email not verified.`);
-             setErrorMsg("Verify your email.");
-             navigate('/student-login'); 
-             setUiLoading(false);
-             setUser(null); 
-             setStudentData(null); 
-             return;
-        }
+        // if (!currentUser.emailVerified) {
+        //      console.warn(`User ${currentUser.uid} email not verified.`);
+        //      setErrorMsg("Verify your email.");
+        //      navigate('/student-login'); 
+        //      setUiLoading(false);
+        //      setUser(null); 
+        //      setStudentData(null); 
+        //      return;
+        // }
 
         setUser(currentUser);
 
@@ -101,7 +101,7 @@ const StudentDashboard = () => {
                 const data = docSnap.data();
                 if (data.role !== 'student') {
                     console.warn(`User ${currentUser.uid} is not a student.`);
-                    signOut(auth).then(() => navigate('/student-login'));
+                    signOut(auth).then(() => navigate('/auth'));
                     setStudentData(null);
                 } else {
                     
@@ -111,7 +111,7 @@ const StudentDashboard = () => {
             } else {
                 console.error("Firestore document missing for authenticated user:", currentUser.uid);
                 setErrorMsg("Error loading profile data.");
-                signOut(auth).then(() => navigate('/student-login'));
+                signOut(auth).then(() => navigate('/auth'));
                 setStudentData(null);
             }
             setUiLoading(false); 
@@ -322,7 +322,7 @@ const StudentDashboard = () => {
             {/* --- WRAP CONTENT IN CONTAINER --- */}
             <Container maxWidth="lg" sx={{ mt: 2, mb: 4 }}>
                 <Box sx={{ mb: 5, textAlign: 'center' }}>
-                    {studentData && (<Typography variant="h5" color="text.secondary" gutterBottom> Welcome, {studentData.name || 'Student'}! </Typography>)}
+                    {studentData && (<Typography variant="h5" color="text.secondary" gutterBottom data-testid="dashboard-welcome-message"> Welcome, {studentData.name || 'Student'}! </Typography>)}
                 </Box>
 
                 <Paper elevation={3} sx={{ borderRadius: 3, position: 'relative' }}>

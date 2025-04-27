@@ -1,0 +1,14 @@
+{
+    "student": {
+      "email": "test-student@example.com",
+      "password": "password123"
+    },
+    "professor": {
+      "email": "test-professor@example.com",
+      "password": "password123"
+    },
+    "invalid": {
+      "email": "invalid@example.com",
+      "password": "wrongpassword"
+    }
+  }
