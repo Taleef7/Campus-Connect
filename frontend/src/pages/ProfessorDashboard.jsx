@@ -528,7 +528,7 @@ const ProfessorDashboard = () => {
         </TabPanel>
         <TabPanel value={tabValue} index={2}> <ProfessorCourses /> </TabPanel>
         <TabPanel value={tabValue} index={3}>
-        ````<Box
+            <Box
               sx={{
                 display: 'flex',
                 flexDirection: { xs: 'column', sm: 'row' },
