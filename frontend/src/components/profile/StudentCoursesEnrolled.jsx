@@ -5,38 +5,30 @@ import React, { useState, useEffect } from 'react';
 import {
   Box, Button, Card, CardContent, Typography, Chip, TextField,
   MenuItem, Select, InputLabel, FormControl, Dialog, DialogActions,
-  DialogContent, DialogTitle, CircularProgress, Alert // Added CircularProgress, Alert
+  DialogContent, DialogTitle, CircularProgress, Alert
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
-import { auth, db } from '../../firebase'; // Adjust path if needed
-import {
-  collection, query, addDoc, deleteDoc, updateDoc, doc, onSnapshot, orderBy // Added orderBy
-} from 'firebase/firestore';
+import { auth, db } from '../../firebase';
+import { collection, query, addDoc, deleteDoc, updateDoc, doc, onSnapshot, orderBy } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
-// Component Renamed
-const StudentCoursesEnrolled = ({ studentData }) => { // Accept studentData if needed, but we mainly use auth.currentUser
-  // Renamed state for clarity
+const StudentCoursesEnrolled = ({ studentData }) => {
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [loading, setLoading] = useState(true);
-  // Updated state for the form fields
   const [courseEntry, setCourseEntry] = useState({
-    courseCodeName: '', // e.g., "CS 101" or "Intro to Programming"
-    semester: '',       // e.g., "Fall 2023"
-    instructorName: '', // Optional instructor
-    status: 'Completed',  // Default to Completed? Or Ongoing? Let's use Completed
-    grade: '', // Add grade field
-    // Removed description, link, courseId
-    // Optional: grade: '',
+    courseCodeName: '',
+    semester: '',
+    instructorName: '',
+    status: 'Completed',
+    grade: '',
   });
-  const [user, setUser] = useState(null); // Still useful to trigger useEffect
+  const [user, setUser] = useState(null);
   const [isFormVisible, setFormVisible] = useState(false);
-  const [editingCourseId, setEditingCourseId] = useState(null); // Firestore doc ID of the course being edited
-  const [formError, setFormError] = useState(''); // Error state for the form
+  const [editingCourseId, setEditingCourseId] = useState(null);
+  const [formError, setFormError] = useState('');
 
-  // Auth listener (needed to get user ID for queries)
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -44,20 +36,15 @@ const StudentCoursesEnrolled = ({ studentData }) => { // Accept studentData if n
     return () => unsubscribe();
   }, []);
 
-  // --- UPDATED useEffect to use onSnapshot for Enrolled Courses Subcollection ---
   useEffect(() => {
     let unsubscribe = () => {};
-
     if (user) {
       setLoading(true);
-      // --- UPDATED PATH: Point to the subcollection ---
       const enrolledCoursesCollectionRef = collection(db, 'users', user.uid, 'enrolledCourses');
-      // Optional: Order by semester or course code
-      const q = query(enrolledCoursesCollectionRef, orderBy('semester', 'desc')); // Example order
-
+      const q = query(enrolledCoursesCollectionRef, orderBy('semester', 'desc'));
       unsubscribe = onSnapshot(q, (querySnapshot) => {
         const fetchedCourses = querySnapshot.docs.map((doc) => ({
-          id: doc.id, // This is the unique ID of the document within the subcollection
+          id: doc.id,
           ...doc.data(),
         }));
         setEnrolledCourses(fetchedCourses);
@@ -65,97 +52,74 @@ const StudentCoursesEnrolled = ({ studentData }) => { // Accept studentData if n
       }, (error) => {
         console.error('Error listening to enrolled courses:', error);
         setLoading(false);
-        // Optionally set an error state
       });
-
     } else {
-      // No user, clear courses
       setEnrolledCourses([]);
       setLoading(false);
     }
-
-    // Cleanup listener
     return () => unsubscribe();
-  }, [user]); // Re-run if user changes
-
+  }, [user]);
 
   const handleRemoveCourse = async (courseDocId) => {
     if (!user) return;
     try {
-      // --- UPDATED PATH ---
       const courseDocRef = doc(db, 'users', user.uid, 'enrolledCourses', courseDocId);
       await deleteDoc(courseDocRef);
-      // No need to filter state - onSnapshot handles update
     } catch (err) {
       console.error('Error deleting enrolled course:', err);
-       alert('Failed to delete course.'); // Provide feedback
+      alert('Failed to delete course.');
     }
   };
 
-
   const handleEditCourse = (course) => {
-    // Populate form with existing course data
     setCourseEntry({
       courseCodeName: course.courseCodeName || '',
       semester: course.semester || '',
       instructorName: course.instructorName || '',
       status: course.status || 'Completed',
-      grade: course.grade || '', // <-- Populate grade field
-      // grade: course.grade || '', // If grade field is added
+      grade: course.grade || '',
     });
-    setEditingCourseId(course.id); // Store the Firestore document ID
+    setEditingCourseId(course.id);
     setFormVisible(true);
-    setFormError(''); // Clear previous form errors
+    setFormError('');
   };
 
-
   const handleSaveCourse = async () => {
-    // Validation for required fields
     if (!courseEntry.courseCodeName || !courseEntry.semester) {
       setFormError('Course Code/Name and Semester are required.');
       return;
     }
-     if (!user) {
-       setFormError('Authentication error.');
-       return;
+    if (!user) {
+      setFormError('Authentication error.');
+      return;
     }
 
-    setFormError(''); // Clear error
-
-    // Prepare data to save (excluding fields not needed or empty)
+    setFormError('');
     const dataToSave = {
-        courseCodeName: courseEntry.courseCodeName.trim(),
-        semester: courseEntry.semester.trim(),
-        instructorName: courseEntry.instructorName.trim(), // Save even if empty
-        status: courseEntry.status,
-        grade: courseEntry.grade.trim(),
-        // grade: courseEntry.grade // If grade field is added
+      courseCodeName: courseEntry.courseCodeName.trim(),
+      semester: courseEntry.semester.trim(),
+      instructorName: courseEntry.instructorName.trim(),
+      status: courseEntry.status,
+      grade: courseEntry.grade.trim(),
     };
 
     try {
       if (editingCourseId) {
-        // --- UPDATED PATH for Update ---
         const courseDocRef = doc(db, 'users', user.uid, 'enrolledCourses', editingCourseId);
         await updateDoc(courseDocRef, dataToSave);
       } else {
-        // --- UPDATED PATH for Add ---
-         const enrolledCoursesCollectionRef = collection(db, 'users', user.uid, 'enrolledCourses');
+        const enrolledCoursesCollectionRef = collection(db, 'users', user.uid, 'enrolledCourses');
         await addDoc(enrolledCoursesCollectionRef, dataToSave);
       }
-
-      // Reset form state and close dialog
       setCourseEntry({ courseCodeName: '', semester: '', instructorName: '', status: 'Completed', grade: '' });
       setEditingCourseId(null);
       setFormVisible(false);
-      // No need to refetch - onSnapshot handles update
-
     } catch (err) {
       console.error('Error saving enrolled course:', err);
-       setFormError('Failed to save course. Please try again.'); // Show error in form
+      setFormError('Failed to save course. Please try again.');
     }
   };
 
-  // Handle input changes for the form
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setCourseEntry((prev) => ({
@@ -164,94 +128,104 @@ const StudentCoursesEnrolled = ({ studentData }) => { // Accept studentData if n
     }));
   };
 
-
-  // Render Loading state
   if (loading) {
-     return <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}><CircularProgress /></Box>;
+    return <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}><CircularProgress /></Box>;
   }
 
   return (
     <Box sx={{ p: 2 }}>
-      {/* Title */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 5 }}>
-          <Typography variant="h5" gutterBottom component="div"> {/* Changed variant */}
-            My Courses
-          </Typography>
-          {/* Add Course Button */}
-          <Button
-            variant="contained"
-            onClick={() => {
-              // Reset form for adding new
-              setCourseEntry({ courseCodeName: '', semester: '', instructorName: '', status: 'Completed' });
-              setEditingCourseId(null);
-              setFormVisible(true);
-              setFormError('');
-            }}
-            startIcon={<AddIcon />}
-            size="small" // Make button smaller
-          >
-            Add Course
-          </Button>
+      {/* --- Updated Header and Add Course Button --- */}
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          justifyContent: { xs: 'center', sm: 'space-between' },
+          alignItems: 'center',
+          textAlign: { xs: 'center', sm: 'left' },
+          gap: { xs: 1.5, sm: 0 },
+          mb: 5
+        }}
+      >
+        <Typography variant="h5" gutterBottom component="div" sx={{ whiteSpace: 'nowrap' }}>
+          My Courses
+        </Typography>
+        <Button
+          variant="contained"
+          onClick={() => {
+            setCourseEntry({ courseCodeName: '', semester: '', instructorName: '', status: 'Completed', grade: '' });
+            setEditingCourseId(null);
+            setFormVisible(true);
+            setFormError('');
+          }}
+          startIcon={<AddIcon />}
+          size="small"
+        >
+          Add Course
+        </Button>
       </Box>
 
-      {/* Course Cards Container */}
-      <Box display="flex" flexWrap="wrap" gap={2}>
-        {/* No courses message */}
+      {/* --- Centered Courses List --- */}
+      <Box
+        sx={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: { xs: 'center', sm: 'flex-start' },
+          gap: 2,
+        }}
+      >
         {enrolledCourses.length === 0 && (
-          <Typography sx={{width: '100%', textAlign: 'center', color: 'text.secondary', mt: 2}}>
-              You haven&apos;t added any courses yet.
+          <Typography sx={{ width: '100%', textAlign: 'center', color: 'text.secondary', mt: 2 }}>
+            You haven't added any courses yet.
           </Typography>
         )}
 
-        {/* Mapping through enrolled courses */}
         {enrolledCourses.map((course) => (
-          <Card key={course.id} sx={{ width: '250px' }}> {/* Unique key is Firestore doc ID */}
-            <CardContent sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}> {/* Flex column */}
-              <Box sx={{ flexGrow: 1 }}> {/* Content takes available space */}
+          <Card key={course.id} sx={{ width: '250px' }}>
+            <CardContent sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <Box sx={{ flexGrow: 1 }}>
                 <Chip
-                  label={course.status || 'Completed'} // Default if missing
-                  color={course.status === 'Ongoing' ? 'info' : 'default'} // Use info for ongoing
+                  label={course.status || 'Completed'}
+                  color={course.status === 'Ongoing' ? 'info' : 'default'}
                   size="small"
-                  sx={{mb: 1}}
+                  sx={{ mb: 1 }}
                 />
-                <Typography variant="h6" gutterBottom sx={{ fontSize: '1rem' }}> {/* Smaller H6 */}
-                    {course.courseCodeName || 'No Name'}
+                <Typography variant="h6" gutterBottom sx={{ fontSize: '1rem' }}>
+                  {course.courseCodeName || 'No Name'}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Semester: {course.semester || 'N/A'}
                 </Typography>
-                {course.instructorName && ( // Only display if instructor exists
-                   <Typography variant="body2" color="text.secondary">
-                     Instructor: {course.instructorName}
-                   </Typography>
+                {course.instructorName && (
+                  <Typography variant="body2" color="text.secondary">
+                    Instructor: {course.instructorName}
+                  </Typography>
                 )}
-                {/* +++ Display Grade if available +++ */}
                 {course.grade && (
-                    <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary">
                     Grade: {course.grade}
-                    </Typography>
+                  </Typography>
                 )}
-                {/* +++ End Grade Display +++ */}
               </Box>
-              {/* Action Buttons pushed to bottom */}
-              <Box sx={{mt: 1, pt: 1, display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #eee'}}>
-                <Button onClick={() => handleEditCourse(course)} color="primary" size="small" startIcon={<EditIcon/>}> Edit </Button>
-                <Button onClick={() => handleRemoveCourse(course.id)} startIcon={<DeleteIcon />} color="error" size="small"> Delete </Button>
+              <Box sx={{ mt: 1, pt: 1, display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #eee' }}>
+                <Button onClick={() => handleEditCourse(course)} color="primary" size="small" startIcon={<EditIcon />}>
+                  Edit
+                </Button>
+                <Button onClick={() => handleRemoveCourse(course.id)} startIcon={<DeleteIcon />} color="error" size="small">
+                  Delete
+                </Button>
               </Box>
             </CardContent>
           </Card>
         ))}
       </Box>
 
-      {/* Add/Edit Course Dialog */}
+      {/* --- Add/Edit Dialog --- */}
       <Dialog open={isFormVisible} onClose={() => setFormVisible(false)} maxWidth="xs" fullWidth>
         <DialogTitle>{editingCourseId ? 'Edit Enrolled Course' : 'Add Enrolled Course'}</DialogTitle>
         <DialogContent>
-           {/* Display form error if any */}
           {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
-
           <TextField
-            label="Course Code / Name" // Combined field
+            label="Course Code / Name"
             fullWidth
             required
             margin="normal"
@@ -260,7 +234,7 @@ const StudentCoursesEnrolled = ({ studentData }) => { // Accept studentData if n
             onChange={handleInputChange}
           />
           <TextField
-            label="Semester Taken" // e.g., Fall 2024
+            label="Semester Taken"
             fullWidth
             required
             margin="normal"
@@ -268,7 +242,7 @@ const StudentCoursesEnrolled = ({ studentData }) => { // Accept studentData if n
             value={courseEntry.semester}
             onChange={handleInputChange}
           />
-           <TextField
+          <TextField
             label="Instructor Name (Optional)"
             fullWidth
             margin="normal"
@@ -284,28 +258,24 @@ const StudentCoursesEnrolled = ({ studentData }) => { // Accept studentData if n
               value={courseEntry.status}
               onChange={handleInputChange}
             >
-              {/* Changed order, maybe 'Completed' is more common */}
               <MenuItem value="Completed">Completed</MenuItem>
               <MenuItem value="Ongoing">Ongoing</MenuItem>
             </Select>
           </FormControl>
-           {/* +++ Add Grade TextField +++ */}
           <TextField
             label="Grade Achieved (Optional)"
             fullWidth
             margin="normal"
-            name="grade" // Matches state key
+            name="grade"
             value={courseEntry.grade}
             onChange={handleInputChange}
             helperText="e.g., A, B+, 3.5"
           />
-          {/* +++ End Grade TextField +++ */}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => { setFormVisible(false); setFormError(''); }} color="secondary">
             Cancel
           </Button>
-          {/* Call handleSaveCourse */}
           <Button onClick={handleSaveCourse} color="primary">
             {editingCourseId ? 'Update Course' : 'Add Course'}
           </Button>
@@ -315,4 +285,4 @@ const StudentCoursesEnrolled = ({ studentData }) => { // Accept studentData if n
   );
 };
 
-export default StudentCoursesEnrolled; // Renamed export
+export default StudentCoursesEnrolled;
