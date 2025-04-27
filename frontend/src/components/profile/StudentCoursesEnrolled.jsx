@@ -93,8 +93,8 @@ const StudentCoursesEnrolled = ({ studentData }) => {
       setFormError('Authentication error.');
       return;
     }
-
     setFormError('');
+
     const dataToSave = {
       courseCodeName: courseEntry.courseCodeName.trim(),
       semester: courseEntry.semester.trim(),
@@ -159,6 +159,7 @@ const StudentCoursesEnrolled = ({ studentData }) => {
           }}
           startIcon={<AddIcon />}
           size="small"
+          data-testid="add-course-page-button"
         >
           Add Course
         </Button>
@@ -219,7 +220,7 @@ const StudentCoursesEnrolled = ({ studentData }) => {
         ))}
       </Box>
 
-      {/* --- Add/Edit Dialog --- */}
+
       <Dialog open={isFormVisible} onClose={() => setFormVisible(false)} maxWidth="xs" fullWidth>
         <DialogTitle>{editingCourseId ? 'Edit Enrolled Course' : 'Add Enrolled Course'}</DialogTitle>
         <DialogContent>
@@ -230,7 +231,7 @@ const StudentCoursesEnrolled = ({ studentData }) => {
             required
             margin="normal"
             name="courseCodeName"
-            value={courseEntry.courseCodeName}
+            value={courseEntry.courseCodeName ?? ''}
             onChange={handleInputChange}
           />
           <TextField
@@ -239,7 +240,7 @@ const StudentCoursesEnrolled = ({ studentData }) => {
             required
             margin="normal"
             name="semester"
-            value={courseEntry.semester}
+            value={courseEntry.semester ?? ''}
             onChange={handleInputChange}
           />
           <TextField
@@ -247,7 +248,7 @@ const StudentCoursesEnrolled = ({ studentData }) => {
             fullWidth
             margin="normal"
             name="instructorName"
-            value={courseEntry.instructorName}
+            value={courseEntry.instructorName ?? ''}
             onChange={handleInputChange}
           />
           <FormControl fullWidth margin="normal">
@@ -255,7 +256,7 @@ const StudentCoursesEnrolled = ({ studentData }) => {
             <Select
               label="Status"
               name="status"
-              value={courseEntry.status}
+              value={courseEntry.status ?? 'Completed'}
               onChange={handleInputChange}
             >
               <MenuItem value="Completed">Completed</MenuItem>
@@ -267,7 +268,8 @@ const StudentCoursesEnrolled = ({ studentData }) => {
             fullWidth
             margin="normal"
             name="grade"
-            value={courseEntry.grade}
+
+            value={courseEntry.grade ?? ''}
             onChange={handleInputChange}
             helperText="e.g., A, B+, 3.5"
           />
@@ -276,7 +278,8 @@ const StudentCoursesEnrolled = ({ studentData }) => {
           <Button onClick={() => { setFormVisible(false); setFormError(''); }} color="secondary">
             Cancel
           </Button>
-          <Button onClick={handleSaveCourse} color="primary">
+
+          <Button onClick={handleSaveCourse} color="primary" data-testid="submit-course-button">
             {editingCourseId ? 'Update Course' : 'Add Course'}
           </Button>
         </DialogActions>
@@ -285,4 +288,6 @@ const StudentCoursesEnrolled = ({ studentData }) => {
   );
 };
 
+
 export default StudentCoursesEnrolled;
+
