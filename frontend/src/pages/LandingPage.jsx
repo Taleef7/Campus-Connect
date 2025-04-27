@@ -15,7 +15,7 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd'; // Icon for Signup
 // --- TODO: Replace with a real, high-quality background image URL ---
 // Consider a blurred Purdue campus photo or a professional abstract background
 // You can host it in Firebase Storage or use a direct link.
-const backgroundImageUrl = 'https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1920&q=80'; // Example placeholder
+import bdImage from '../assets/Mastadon.jpg'; // Placeholder image
 
 const LandingPage = () => {
 
@@ -38,7 +38,7 @@ const LandingPage = () => {
       <Avatar sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', width: 56, height: 56, margin: '0 auto 16px auto' }}>
         {icon}
       </Avatar>
-      <Typography variant="h6" gutterBottom sx={{ fontWeight: 'medium', color: 'text.primary' }}>
+      <Typography variant="h6" component="h3" gutterBottom sx={{ fontWeight: 'medium', color: 'text.primary' }}>
         {title}
       </Typography>
       <Typography variant="body2" color="text.secondary">
@@ -55,7 +55,7 @@ const LandingPage = () => {
           sx={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
               minHeight: { xs: '60vh', sm: '70vh' },
-              backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)), url(${backgroundImageUrl})`,
+              backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)), url(${bdImage})`,
               backgroundSize: 'cover', backgroundPosition: 'center', color: 'common.white',
               textAlign: 'center', px: { xs: 2, sm: 3, md: 6 }, pt: 10, pb: 6,
           }}
@@ -95,18 +95,17 @@ const LandingPage = () => {
                     {/* Sign Up Button - passes state */}
                     <Button
                         component={RouterLink}
-                         // Pass state to indicate signup mode
+                        
                         to="/auth"
                         state={{ initialMode: 'signup' }}
-                        variant="outlined" // Different style for secondary action
-                        // Use inherit color for outlined button on dark background
+                        variant="outlined" 
                         sx={{
                             px: { xs: 3, sm: 4 }, py: { xs: 1, sm: 1.5 },
-                            color: 'white', // Make text white
-                            borderColor: 'rgba(255, 255, 255, 0.5)', // Lighter border
+                            color: 'white',
+                            borderColor: 'white', 
                             '&:hover': {
-                                borderColor: 'white', // Brighter border on hover
-                                backgroundColor: 'rgba(255, 255, 255, 0.1)' // Slight background on hover
+                              borderColor: '#FFFFFF', 
+                              backgroundColor: 'rgba(255, 255, 255, 0.25)'
                             }
                          }}
                         size="large"
@@ -155,13 +154,13 @@ const LandingPage = () => {
 
       {/* --- Footer Section --- */}
       {/* Use theme secondary color */}
-      <Box sx={{ bgcolor: 'secondary.main', color: 'secondary.contrastText', py: 4, mt: 'auto' /* Push footer down */ }}>
+      <Box sx={{ bgcolor: '#000000', color: '#ffffff', py: 4, mt: 'auto' }}>
         <Container maxWidth="lg" sx={{ textAlign: 'center' }}>
            {/* Optional: Add relevant links or info */}
-          <Typography variant="body2" sx={{ opacity: 0.8 }}>
+          <Typography variant="body2" sx={{ opacity: 1 }}>
             Campus Connect | Purdue University Fort Wayne
           </Typography>
-          <Typography variant="caption" sx={{ display: 'block', mt: 1, opacity: 0.6 }}>
+          <Typography variant="caption" sx={{ display: 'block', mt: 1, opacity: 1 }}>
             © {new Date().getFullYear()} - All Rights Reserved
           </Typography>
         </Container>

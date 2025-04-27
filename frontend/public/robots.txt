@@ -1,0 +1,6 @@
+# robots.txt for Campus Connect
+
+User-agent: *
+Allow: /
+
+Sitemap: https://campus-connect-b87d4.web.app/sitemap.xml

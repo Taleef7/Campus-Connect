@@ -528,9 +528,37 @@ const ProfessorDashboard = () => {
         </TabPanel>
         <TabPanel value={tabValue} index={2}> <ProfessorCourses /> </TabPanel>
         <TabPanel value={tabValue} index={3}>
-            <Box sx={{p:2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                 <Typography variant="h5" gutterBottom>My Posted Opportunities</Typography>
-                 <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAddOpportunityDialog} disabled={isSaving || isProcessing} > Post New Opportunity </Button>
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                alignItems: { xs: 'stretch', sm: 'center' },
+                justifyContent: 'space-between',
+                gap: 2,
+                mb: 2,
+              }}
+            >     
+              <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold' }}>
+                My Posted Opportunities
+              </Typography>
+
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleOpenAddOpportunityDialog}
+                disabled={isSaving || isProcessing}
+                sx={{
+                  textTransform: 'none',
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                  px: { xs: 1.5, sm: 2 },
+                  py: { xs: 0.75, sm: 1 },
+                  minHeight: { xs: '36px', sm: 'auto' },
+                  borderRadius: 2,
+                  alignSelf: { xs: 'center', sm: 'auto' },
+                }}
+              >
+                Post New Opportunity
+              </Button>
             </Box>
 
             {loadingOpportunities ? (
