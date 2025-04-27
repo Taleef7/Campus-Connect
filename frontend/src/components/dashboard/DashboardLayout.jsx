@@ -1,25 +1,20 @@
 /* eslint-disable react/prop-types */
 /* eslint-disable no-unused-vars */
-// frontend/src/components/dashboard/DashboardLayout.jsx
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Button, AppBar, Toolbar } from '@mui/material';
-import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom'; // Added useNavigate
-// Firebase Imports
+import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import { auth, db } from '../../firebase';
-import { onAuthStateChanged, signOut } from 'firebase/auth'; // Added signOut
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 
-// Removed dashboardPath from props, title is also unused currently
 const DashboardLayout = ({ children }) => {
     const location = useLocation();
-    const navigate = useNavigate(); // Hook for navigation
+    const navigate = useNavigate();
     const currentPath = location.pathname;
 
-    // State for logged-in user info
     const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
     const [loggedInUserDashboardPath, setLoggedInUserDashboardPath] = useState(null);
 
-    // Effect to determine logged-in user's dashboard path
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user && user.emailVerified) {
@@ -39,75 +34,90 @@ const DashboardLayout = ({ children }) => {
                     setLoggedInUserDashboardPath(null);
                 }
             } else {
-                // No user logged in or not verified
                 setIsUserLoggedIn(false);
                 setLoggedInUserDashboardPath(null);
             }
         });
         return () => unsubscribe(); // Cleanup on unmount
-    }, []); // Run once on mount
+    }, []);
 
-    // Define SignOut handler inside the layout
     const handleSignOut = async () => {
         try {
             await signOut(auth);
-            // Navigate to home or login page after sign out
-            navigate('/'); // Or '/student-login' ?
+            navigate('/'); // Navigate to home after sign out
         } catch (error) {
             console.error("Sign out error:", error);
-            // Show snackbar?
         }
     };
 
     const navLinkHoverSx = {
-      borderRadius: 1,
-      '&:hover': {
-          backgroundColor: 'action.hover',
-      },
-  };
-    // --- Determine if we are on a profile page ---
-    const isProfilePage = currentPath.startsWith('/profile/');
-    // --- ---
+        borderRadius: 1,
+        '&:hover': {
+            backgroundColor: 'action.hover',
+        },
+    };
 
+    const isProfilePage = currentPath.startsWith('/profile/');
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
             <AppBar position="sticky" sx={{ bgcolor: 'background.paper', color: 'text.primary' }}>
-                <Toolbar>
+                <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     {/* Title Link */}
                     <Typography
                         variant="h6" component={RouterLink}
-                        // Link to dashboard if logged in, else home
                         to={loggedInUserDashboardPath || '/'}
-                        sx={{ flexGrow: 1, fontWeight: 'bold', color: 'inherit', textDecoration: 'none', '&:hover': { opacity: 0.9 } }}
+                        sx={{
+                            flexGrow: 1, 
+                            fontWeight: 'bold', 
+                            color: 'inherit', 
+                            textDecoration: 'none', 
+                            '&:hover': { opacity: 0.9 },
+                            whiteSpace: 'nowrap',
+                        }}
                     >
                         Campus Connect
                     </Typography>
 
-                    {/* --- BUTTON LOGIC REVISED --- */}
-
-                    {/* Dashboard Button */}
-                    {isUserLoggedIn && loggedInUserDashboardPath && currentPath !== loggedInUserDashboardPath && (
-                        <Button variant='outlined' component={RouterLink} to={loggedInUserDashboardPath} color="secondary" sx={{ ...navLinkHoverSx, mr: 1, fontWeight: 'medium' }}>
-                            Dashboard
-                        </Button>
-                    )}
-
-                    {/* Directory Button: Show if Logged In AND NOT on Directory AND NOT on Profile */}
-                    {isUserLoggedIn && currentPath !== '/directory' && !isProfilePage && ( // <<< ADDED !isProfilePage CHECK
-                        <Button variant='outlined' component={RouterLink} to="/directory" color="secondary" sx={{ ...navLinkHoverSx, mr: 1, fontWeight: 'medium' }}>
-                            Directory
-                        </Button>
-                    )}
-
-                    {/* Sign Out Button */}
-                    {isUserLoggedIn && (
-                        <Button variant='contained' onClick={handleSignOut} color="primary" sx={{ ml: 1 }} >
-                            Sign Out
-                        </Button>
-                    )}
-                    {/* --- END BUTTON LOGIC --- */}
-
+                    {/* Button Group for Desktop and Mobile */}
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                        {isUserLoggedIn && loggedInUserDashboardPath && currentPath !== loggedInUserDashboardPath && (
+                            <Button 
+                                variant='outlined' 
+                                component={RouterLink} 
+                                to={loggedInUserDashboardPath} 
+                                color="secondary" 
+                                sx={navLinkHoverSx}
+                            >
+                                Dashboard
+                            </Button>
+                        )}
+                        {isUserLoggedIn && currentPath !== '/directory' && !isProfilePage && (
+                            <Button 
+                                variant='outlined' 
+                                component={RouterLink} 
+                                to="/directory" 
+                                color="secondary" 
+                                sx={navLinkHoverSx}
+                            >
+                                Directory
+                            </Button>
+                        )}
+                        {isUserLoggedIn && (
+                            <Button
+                                variant='contained'
+                                onClick={handleSignOut}
+                                color="primary"
+                                sx={{
+                                    fontSize: { xs: '0.75rem', sm: '0.875rem' }, // Adjust font size for smaller screens
+                                    padding: '8px 16px', // Adjust padding for mobile
+                                    textTransform: 'none', // Prevent uppercase text
+                                }}
+                            >
+                                Sign Out
+                            </Button>
+                        )}
+                    </Box>
                 </Toolbar>
             </AppBar>
 

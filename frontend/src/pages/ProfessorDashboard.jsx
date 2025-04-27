@@ -538,9 +538,11 @@ const ProfessorDashboard = () => {
                 mb: 2,
               }}
             >     
-              <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold' }}>
-                My Posted Opportunities
-              </Typography>
+              <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
+                <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+                  My Posted Opportunities
+                </Typography>
+              </Box>
 
               <Button
                 variant="contained"

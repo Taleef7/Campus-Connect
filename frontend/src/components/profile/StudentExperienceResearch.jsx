@@ -302,10 +302,31 @@ const StudentExperienceResearch = ({ studentData }) => {
       <Divider sx={{ my: 4 }} />
 
       {/* --- Structured Experience Section --- */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" gutterBottom component="div">Experiences</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAddExperienceModal} size="small" disabled={isSavingExperience}> Add Experience </Button>
-      </Box>
+      {/* --- Structured Experience Section Updated --- */}
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: { xs: 'column', sm: 'row' },
+        justifyContent: { xs: 'center', sm: 'space-between' },
+        alignItems: 'center',
+        textAlign: { xs: 'center', sm: 'left' },
+        gap: { xs: 1.5, sm: 0 },
+        mb: 2
+      }}
+    >
+      <Typography variant="h5" gutterBottom component="div" sx={{ whiteSpace: 'nowrap' }}>
+        Experiences
+      </Typography>
+      <Button
+        variant="contained"
+        startIcon={<AddIcon />}
+        onClick={handleOpenAddExperienceModal}
+        size="small"
+        disabled={isSavingExperience}
+      >
+        Add Experience
+      </Button>
+    </Box>
 
       {/* Display fetch errors */}
       {experienceError && !loadingExperiences && <MuiAlert severity="error" sx={{ mb: 2 }}>{experienceError}</MuiAlert>} {/* Keep fetch error */}
