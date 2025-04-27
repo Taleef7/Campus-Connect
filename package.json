@@ -5,5 +5,8 @@
     "@mui/material": "^6.4.8",
     "@react-oauth/google": "^0.12.1",
     "date-fns": "^4.1.0"
+  },
+  "devDependencies": {
+    "newman": "^6.2.1"
   }
 }

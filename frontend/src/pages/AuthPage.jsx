@@ -69,6 +69,10 @@ const AuthPage = () => {
     // --- End Listener ---
 
 
+    // Check if the environment variable is set to 'true'
+    const skipVerification = import.meta.env.VITE_SKIP_EMAIL_VERIFICATION === 'true';
+
+
     // --- Snackbar Handlers ---
     const handleSnackbarClose = (event, reason) => {
         if (reason === 'clickaway') { return; }
@@ -146,15 +150,20 @@ const AuthPage = () => {
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
 
-                if (!user.emailVerified) {
-                    // Handle email not verified (Keep as is)
+                // --- MODIFIED VERIFICATION CHECK ---
+                // Only perform the check if skipVerification is false
+                if (!user.emailVerified && !skipVerification) {
+                    console.log("Email not verified and verification is required. Signing out."); // Log
                     try { await sendEmailVerification(user); showSnackbar('Email not verified. We resent the verification link.', 'warning'); }
                     catch (verificationError) { showSnackbar('Email not verified. Failed to resend link.', 'error'); }
-                    await signOut(auth); // Sign out only if email is not verified
-                    throw new Error("Email not verified."); // Prevent further processing
+                    await signOut(auth);
+                    throw new Error("Email not verified.");
                 }
+                // --- END MODIFIED CHECK ---
 
-                // Check role matches selected role
+                // If verified OR skipping verification, proceed with Firestore role check
+                console.log("Email verified or check skipped. Checking Firestore role..."); // Log
+                // Get the user's Firestore document to check their role
                 const userDocRef = doc(db, 'users', user.uid);
                 const docSnap = await getDoc(userDocRef);
 
@@ -188,7 +197,7 @@ const AuthPage = () => {
              else if (error.code === 'auth/email-already-in-use') { message = 'Email already in use. Please log in or use a different email.'; }
              // Use the specific error messages thrown above
              else if (error.message.includes("Access denied") || error.message.includes("User profile not found")) { message = error.message; }
-             else if (error.message.includes("Email not verified")) { /* Already handled by snackbar */ return; }
+             else if (error.message.includes("Email not verified")) { /* This case should now only happen if skipVerification is false */ message = error.message; } // Keep handling this just in case
              else if (error.message.includes("required fields")) { message = error.message; }
              else if (error.message.includes("Invalid Name")) { message = error.message; }
 
@@ -275,7 +284,7 @@ const AuthPage = () => {
             <Container component="main" maxWidth="xs">
                 {/* Apply Grow directly to Paper */}
                 <Grow in={!authLoading} timeout={500}>
-                    <Paper
+                    <Paper data-testid="auth-paper"
                         elevation={8}
                         sx={{
                             p: { xs: 3, sm: 4 }, display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -285,9 +294,9 @@ const AuthPage = () => {
                         {/* Toggles Section */}
                         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 3, width: '100%', justifyContent: 'center', alignItems: 'center' }}>
                             {/* Role Toggle */}
-                            <ToggleButtonGroup value={role} exclusive onChange={handleRoleChange} aria-label="Select role" size="small" color="secondary" >
-                                <ToggleButton value="student" aria-label="student role" sx={{ px: 2, py: 0.8 }}> <SchoolIcon sx={{ mr: 0.5 }} fontSize="small"/> Student </ToggleButton>
-                                <ToggleButton value="professor" aria-label="professor role" sx={{ px: 2, py: 0.8 }}> <BusinessCenterIcon sx={{ mr: 0.5 }} fontSize="small"/> Professor </ToggleButton>
+                            <ToggleButtonGroup data-testid="role-toggle-group" value={role} exclusive onChange={handleRoleChange} aria-label="Select role" size="small" color="secondary" >
+                                <ToggleButton data-testid="role-student-button" value="student" aria-label="student role" sx={{ px: 2, py: 0.8 }}> <SchoolIcon sx={{ mr: 0.5 }} fontSize="small"/> Student </ToggleButton>
+                                <ToggleButton data-testid="role-professor-button" value="professor" aria-label="professor role" sx={{ px: 2, py: 0.8 }}> <BusinessCenterIcon sx={{ mr: 0.5 }} fontSize="small"/> Professor </ToggleButton>
                             </ToggleButtonGroup>
                             {/* Mode Toggle */}
                             {/* <ToggleButtonGroup value={mode} exclusive onChange={handleModeChange} aria-label="Login or Sign up mode" size="small" color="primary" >
@@ -313,11 +322,11 @@ const AuthPage = () => {
                             </Fade>
 
                             {/* Common Fields */}
-                            <TextField margin="normal" required fullWidth id="email" label="Email Address" name="email" autoComplete="email" autoFocus={mode === 'login'} value={email} onChange={(e) => setEmail(e.target.value)} variant="filled" />
-                            <TextField margin="normal" required fullWidth name="password" label="Password" type="password" id="password" autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} value={password} onChange={(e) => setPassword(e.target.value)} variant="filled" />
+                            <TextField data-testid="email-input" margin="normal" required fullWidth id="email" label="Email Address" name="email" autoComplete="email" autoFocus={mode === 'login'} value={email} onChange={(e) => setEmail(e.target.value)} variant="filled" />
+                            <TextField data-testid="password-input" margin="normal" required fullWidth name="password" label="Password" type="password" id="password" autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} value={password} onChange={(e) => setPassword(e.target.value)} variant="filled" />
 
                             {/* Submit Button */}
-                            <Button type="submit" fullWidth variant="contained" color="primary" sx={{ mt: 3, mb: 1, py: 1.5, fontWeight: 'bold', transition: 'transform 0.1s ease-in-out', '&:hover': { transform: 'scale(1.02)' } }} disabled={loading} >
+                            <Button data-testid="submit-button" type="submit" fullWidth variant="contained" color="primary" sx={{ mt: 3, mb: 1, py: 1.5, fontWeight: 'bold', transition: 'transform 0.1s ease-in-out', '&:hover': { transform: 'scale(1.02)' } }} disabled={loading} >
                                 {loading ? <CircularProgress size={24} color="inherit"/> : (mode === 'signup' ? 'Sign Up' : 'Log In')}
                             </Button>
 

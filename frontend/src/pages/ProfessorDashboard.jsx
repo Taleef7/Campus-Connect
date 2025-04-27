@@ -98,24 +98,24 @@ const ProfessorDashboard = () => {
     let firestoreUnsubscribe = () => {}; 
 
     const authUnsubscribe = onAuthStateChanged(auth, (currentUser) => {
-        
+
         firestoreUnsubscribe();
 
         if (!currentUser) {
-            navigate('/professor-login');
+            navigate('/auth');
             setUiLoading(false);
             setUser(null);
             setProfessorData(null);
             return;
         }
-        if (!currentUser.emailVerified) {
-             console.warn(`User ${currentUser.uid} email not verified.`);
-             navigate('/professor-login');
-             setUiLoading(false);
-             setUser(null);
-             setProfessorData(null);
-             return;
-        }
+        // if (!currentUser.emailVerified) {
+        //      console.warn(`User ${currentUser.uid} email not verified.`);
+        //      navigate('/professor-login');
+        //      setUiLoading(false);
+        //      setUser(null);
+        //      setProfessorData(null);
+        //      return;
+        // }
 
         setUser(currentUser);
 
@@ -123,19 +123,21 @@ const ProfessorDashboard = () => {
         firestoreUnsubscribe = onSnapshot(docRef, (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
-  
+
                 if (data.role !== 'professor') {
+                    console.error("DEBUG: Role mismatch in dashboard! Attempting navigation to /auth."); // ADD THIS LOG
                     console.warn(`User ${currentUser.uid} is not a professor.`);
-                    signOut(auth).then(() => navigate('/professor-login'));
+                    signOut(auth).then(() => navigate('/auth'));
                     setProfessorData(null);
                 } else {
-                    
+
                     setProfessorData({ id: docSnap.id, ...data });
                 }
             } else {
+                console.error("DEBUG: Firestore doc missing in dashboard! Attempting navigation to /auth."); // ADD THIS LOG
                 console.error("Firestore document missing for professor:", currentUser.uid);
                 setErrorMsg("Error loading profile data.");
-                signOut(auth).then(() => navigate('/professor-login'));
+                signOut(auth).then(() => navigate('/auth'));
                 setProfessorData(null);
             }
             setUiLoading(false);
@@ -478,7 +480,7 @@ const ProfessorDashboard = () => {
     <DashboardLayout>
        <Container maxWidth="lg" sx={{ mt: 2, mb: 4 }}>
               <Box sx={{ mb: 5, textAlign: 'center' }}>
-              {professorData && ( <Typography variant="h5" color="text.secondary"> Welcome, {professorData.name || 'Professor'}! </Typography> )}
+              {professorData && ( <Typography variant="h5" color="text.secondary" data-testid="professor-dashboard-welcome"> Welcome, {professorData.name || 'Professor'}! </Typography> )}
               </Box>
 
       <Paper elevation={3} sx={{ borderRadius: 3, position: 'relative' }}>
