@@ -187,6 +187,10 @@ const ProfessorCourses = () => {
             <Card
               sx={{
                 width: '100%',
+                height: '100%', // Same height
+                display: 'flex', // Flex layout
+                flexDirection: 'column', // Column flow
+                justifyContent: 'space-between', // Space between content and actions
                 position: 'relative',
                 transition: 'transform 0.3s, box-shadow 0.3s',
                 '&:hover': {
@@ -208,10 +212,11 @@ const ProfessorCourses = () => {
                 }}
               />
 
-              {/* Card Content */}
-              <CardContent sx={{ pt: 5 }}>
+              <CardContent sx={{ pt: 5, flexGrow: 1 }}>
                 <Typography variant="h6" gutterBottom>{course.courseName}</Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>{course.description}</Typography>
+                <Typography variant="body2" sx={{ mb: 1, wordBreak: 'break-word' }}>
+                  {course.description}
+                </Typography>
 
                 {course.link && (
                   <Typography variant="body2" color="primary" sx={{ mb: 1 }}>
@@ -220,23 +225,27 @@ const ProfessorCourses = () => {
                     </a>
                   </Typography>
                 )}
+              </CardContent>
 
-                <Box sx={{
-                  mt: 2,
+              <Box
+                sx={{
+                  mt: 'auto',
                   pt: 1,
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  borderTop: '1px solid lightgrey'
-                }}>
-                  <Button onClick={() => handleEditCourse(course)} color="primary" size="small" startIcon={<EditIcon />}>
-                    Edit
-                  </Button>
-                  <Button onClick={() => handleRemoveCourse(course.id)} startIcon={<DeleteIcon />} color="error" size="small">
-                    Delete
-                  </Button>
-                </Box>
-              </CardContent>
+                  borderTop: '1px solid lightgrey',
+                  px: 2,
+                  pb: 2,
+                }}
+              >
+                <Button onClick={() => handleEditCourse(course)} color="primary" size="small" startIcon={<EditIcon />}>
+                  Edit
+                </Button>
+                <Button onClick={() => handleRemoveCourse(course.id)} startIcon={<DeleteIcon />} color="error" size="small">
+                  Delete
+                </Button>
+              </Box>
             </Card>
           </Grid>
         ))}
