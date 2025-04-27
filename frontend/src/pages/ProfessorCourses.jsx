@@ -3,15 +3,15 @@ import React, { useState, useEffect } from 'react';
 import {
   Box, Button, Card, CardContent, Typography, Chip, TextField,
   MenuItem, Select, InputLabel, FormControl, Dialog, DialogActions,
-  DialogContent, DialogTitle
+  DialogContent, DialogTitle, Grid
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit'; // Assuming you want Edit icon
+import EditIcon from '@mui/icons-material/Edit';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import {
-  collection, getDocs, addDoc, deleteDoc, updateDoc, query, where, doc, onSnapshot
+  collection, addDoc, deleteDoc, updateDoc, query, where, doc, onSnapshot
 } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
@@ -41,12 +41,10 @@ const ProfessorCourses = () => {
     return () => unsubscribe();
   }, []);
 
-  // --- UPDATED useEffect to use onSnapshot for Courses ---
   useEffect(() => {
-    let unsubscribe = () => {}; // Initialize unsubscribe function
-
+    let unsubscribe = () => {};
     if (user) {
-      setLoading(true); 
+      setLoading(true);
       const q = query(collection(db, 'courses'), where('professorId', '==', user.uid));
 
       unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -54,21 +52,18 @@ const ProfessorCourses = () => {
           id: doc.id,
           ...doc.data(),
         }));
-        setCourses(fetchedCourses); 
-        setLoading(false); 
+        setCourses(fetchedCourses);
+        setLoading(false);
       }, (error) => {
         console.error('Error listening to courses:', error);
-        setLoading(false); 
+        setLoading(false);
       });
-
     } else {
       setCourses([]);
       setLoading(false);
     }
-
     return () => unsubscribe();
   }, [user]);
-  // --- End UPDATED useEffect ---
 
   const handleRemoveCourse = async (id) => {
     try {
@@ -95,7 +90,6 @@ const ProfessorCourses = () => {
       alert('Please fill in all fields correctly.');
       return;
     }
-
     try {
       if (editingCourseId) {
         await updateDoc(doc(db, 'courses', editingCourseId), {
@@ -113,11 +107,9 @@ const ProfessorCourses = () => {
           professorId: user.uid,
         });
       }
-
       setNewCourse({ courseName: '', description: '', status: 'Ongoing', link: '' });
       setEditingCourseId(null);
       setFormVisible(false);
-
     } catch (err) {
       console.error('Error saving course:', err);
     }
@@ -137,79 +129,120 @@ const ProfessorCourses = () => {
     }));
   };
 
-  if (loading && courses.length === 0) { 
-    return <div>Loading courses...</div>; 
- }
+  if (loading && courses.length === 0) {
+    return <div>Loading courses...</div>;
+  }
 
   return (
     <Box sx={{ p: 3 }}>
-     <Typography variant="h5" gutterBottom>
-       My Courses
-     </Typography>
+      {/* Title and Add Course Button */}
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          justifyContent: 'space-between',
+          alignItems: { xs: 'stretch', sm: 'center' },
+          mb: 3,
+          gap: 2,
+        }}
+      >
+        <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
+          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+            My Courses
+          </Typography>
+        </Box>
 
-     <Button
-       variant="contained"
-       onClick={() => {
-         setNewCourse({ courseName: '', description: '', status: 'Ongoing', link: '' });
-         setEditingCourseId(null);
-         setFormVisible(true);
-       }}
-       sx={{
-            mb: 2,
-            float: 'right', 
-       }}
-       startIcon={<AddIcon />}
-     >
-       Add Course
-     </Button>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => {
+            setNewCourse({ courseName: '', description: '', status: 'Ongoing', link: '' });
+            setEditingCourseId(null);
+            setFormVisible(true);
+          }}
+          sx={{
+            textTransform: 'none',
+            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+            px: { xs: 1.5, sm: 2 },
+            py: { xs: 0.75, sm: 1 },
+            minHeight: { xs: '36px', sm: 'auto' },
+            borderRadius: 2,
+            alignSelf: { xs: 'center', sm: 'auto' },
+          }}
+        >
+          Add Course
+        </Button>
+      </Box>
 
-     <Box sx={{ clear: 'both', mb: 2 }} />
+      {/* Course Cards */}
+      <Grid container spacing={3} justifyContent="flex-start">
+        {!loading && courses.length === 0 && (
+          <Typography sx={{ color: 'text.secondary', textAlign: 'center' }}>
+            No courses added yet.
+          </Typography>
+        )}
 
-     {/* Course Cards Container */}
-     <Box display="flex" flexWrap="wrap" gap={2} > 
-       {loading && courses.length === 0 && (
-         <Typography sx={{width: '100%', textAlign: 'center', color: 'text.secondary'}}>Loading courses...</Typography>
-       )}
-       {/* No courses message */}
-       {!loading && courses.length === 0 && (
-         <Typography sx={{width: '100%', textAlign: 'center', color: 'text.secondary'}}>No courses added yet.</Typography>
-       )}
+        {courses.map((course) => (
+          <Grid item xs={12} sm={6} md={4} key={course.id}>
+            <Card
+              sx={{
+                width: '100%',
+                position: 'relative',
+                transition: 'transform 0.3s, box-shadow 0.3s',
+                '&:hover': {
+                  transform: 'scale(1.02)',
+                  boxShadow: 6,
+                },
+              }}
+            >
+              {/* Status Chip */}
+              <Chip
+                label={course.status === 'Ongoing' ? 'Ongoing' : 'Completed'}
+                color={course.status === 'Ongoing' ? 'primary' : 'secondary'}
+                size="small"
+                sx={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  zIndex: 1,
+                }}
+              />
 
-       {/* Mapping through courses */}
-       {courses.map((course) => (
-         <Card key={course.id} sx={{ width: '250px' }}> 
-           <CardContent>
-             {/* Chip for Status */}
-             <Chip
-               label={course.status === 'Ongoing' ? 'Ongoing' : 'Completed'}
-               color={course.status === 'Ongoing' ? 'primary' : 'secondary'}
-               size="small" 
-               sx={{mb: 1}} 
-             />
-             {/* Course Name */}
-             <Typography variant="h6" gutterBottom>{course.courseName}</Typography> 
-             {/* Description */}
-             <Typography variant="body2" sx={{ mb: 1 }}>{course.description}</Typography> 
-             {/* Link */}
-             {course.link && (
-               <Typography variant="body2" color="primary" sx={{ mb: 1 }}> 
-                 <a href={course.link} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>
-                   Go to Course
-                 </a>
-               </Typography>
-             )}
+              {/* Card Content */}
+              <CardContent sx={{ pt: 5 }}>
+                <Typography variant="h6" gutterBottom>{course.courseName}</Typography>
+                <Typography variant="body2" sx={{ mb: 1 }}>{course.description}</Typography>
 
-             {/* Action Buttons */}
-             <Box sx={{mt: 'auto', pt: 1, display: 'flex', justifyContent: 'space-between', borderTop: '1px solid lightgrey'}}>
-               <Button onClick={() => handleEditCourse(course)} color="primary" size="small" startIcon={<EditIcon/>}> Edit </Button>
-               <Button onClick={() => handleRemoveCourse(course.id)} startIcon={<DeleteIcon />} color="error" size="small"> Delete </Button>
-             </Box>
-           </CardContent>
-         </Card>
-       ))}
-     </Box>
+                {course.link && (
+                  <Typography variant="body2" color="primary" sx={{ mb: 1 }}>
+                    <a href={course.link} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>
+                      Go to Course
+                    </a>
+                  </Typography>
+                )}
 
+                <Box sx={{
+                  mt: 2,
+                  pt: 1,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  borderTop: '1px solid lightgrey'
+                }}>
+                  <Button onClick={() => handleEditCourse(course)} color="primary" size="small" startIcon={<EditIcon />}>
+                    Edit
+                  </Button>
+                  <Button onClick={() => handleRemoveCourse(course.id)} startIcon={<DeleteIcon />} color="error" size="small">
+                    Delete
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
 
+      {/* Add/Edit Dialog */}
       <Dialog open={isFormVisible} onClose={() => setFormVisible(false)}>
         <DialogTitle>{editingCourseId ? 'Edit Course' : 'Add New Course'}</DialogTitle>
         <DialogContent>
