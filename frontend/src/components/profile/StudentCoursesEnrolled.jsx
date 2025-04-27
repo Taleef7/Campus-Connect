@@ -11,9 +11,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import { auth, db } from '../../firebase';
-import {
-  collection, query, addDoc, deleteDoc, updateDoc, doc, onSnapshot, orderBy
-} from 'firebase/firestore';
+import { collection, query, addDoc, deleteDoc, updateDoc, doc, onSnapshot, orderBy } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
 const StudentCoursesEnrolled = ({ studentData }) => {
@@ -44,7 +42,6 @@ const StudentCoursesEnrolled = ({ studentData }) => {
       setLoading(true);
       const enrolledCoursesCollectionRef = collection(db, 'users', user.uid, 'enrolledCourses');
       const q = query(enrolledCoursesCollectionRef, orderBy('semester', 'desc'));
-
       unsubscribe = onSnapshot(q, (querySnapshot) => {
         const fetchedCourses = querySnapshot.docs.map((doc) => ({
           id: doc.id,
@@ -137,8 +134,19 @@ const StudentCoursesEnrolled = ({ studentData }) => {
 
   return (
     <Box sx={{ p: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 5 }}>
-        <Typography variant="h5" gutterBottom component="div">
+      {/* --- Updated Header and Add Course Button --- */}
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          justifyContent: { xs: 'center', sm: 'space-between' },
+          alignItems: 'center',
+          textAlign: { xs: 'center', sm: 'left' },
+          gap: { xs: 1.5, sm: 0 },
+          mb: 5
+        }}
+      >
+        <Typography variant="h5" gutterBottom component="div" sx={{ whiteSpace: 'nowrap' }}>
           My Courses
         </Typography>
         <Button
@@ -157,12 +165,21 @@ const StudentCoursesEnrolled = ({ studentData }) => {
         </Button>
       </Box>
 
-      <Box display="flex" flexWrap="wrap" gap={2}>
+      {/* --- Centered Courses List --- */}
+      <Box
+        sx={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: { xs: 'center', sm: 'flex-start' },
+          gap: 2,
+        }}
+      >
         {enrolledCourses.length === 0 && (
           <Typography sx={{ width: '100%', textAlign: 'center', color: 'text.secondary', mt: 2 }}>
-            You haven&apos;t added any courses yet.
+            You haven't added any courses yet.
           </Typography>
         )}
+
         {enrolledCourses.map((course) => (
           <Card key={course.id} sx={{ width: '250px' }}>
             <CardContent sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -191,19 +208,23 @@ const StudentCoursesEnrolled = ({ studentData }) => {
                 )}
               </Box>
               <Box sx={{ mt: 1, pt: 1, display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #eee' }}>
-                <Button onClick={() => handleEditCourse(course)} color="primary" size="small" startIcon={<EditIcon />}>Edit</Button>
-                <Button onClick={() => handleRemoveCourse(course.id)} startIcon={<DeleteIcon />} color="error" size="small">Delete</Button>
+                <Button onClick={() => handleEditCourse(course)} color="primary" size="small" startIcon={<EditIcon />}>
+                  Edit
+                </Button>
+                <Button onClick={() => handleRemoveCourse(course.id)} startIcon={<DeleteIcon />} color="error" size="small">
+                  Delete
+                </Button>
               </Box>
             </CardContent>
           </Card>
         ))}
       </Box>
 
+
       <Dialog open={isFormVisible} onClose={() => setFormVisible(false)} maxWidth="xs" fullWidth>
         <DialogTitle>{editingCourseId ? 'Edit Enrolled Course' : 'Add Enrolled Course'}</DialogTitle>
         <DialogContent>
           {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
-
           <TextField
             label="Course Code / Name"
             fullWidth
@@ -247,6 +268,7 @@ const StudentCoursesEnrolled = ({ studentData }) => {
             fullWidth
             margin="normal"
             name="grade"
+
             value={courseEntry.grade ?? ''}
             onChange={handleInputChange}
             helperText="e.g., A, B+, 3.5"
@@ -256,6 +278,7 @@ const StudentCoursesEnrolled = ({ studentData }) => {
           <Button onClick={() => { setFormVisible(false); setFormError(''); }} color="secondary">
             Cancel
           </Button>
+
           <Button onClick={handleSaveCourse} color="primary" data-testid="submit-course-button">
             {editingCourseId ? 'Update Course' : 'Add Course'}
           </Button>
@@ -265,4 +288,6 @@ const StudentCoursesEnrolled = ({ studentData }) => {
   );
 };
 
+
 export default StudentCoursesEnrolled;
+
