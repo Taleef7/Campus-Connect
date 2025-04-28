@@ -55,7 +55,7 @@ const OpportunityListItem = ({
   const deadlineString = formatDate(opportunity.deadline);
 
   return (
-    <Paper elevation={2} sx={{ p: 2, mb: 2, borderRadius: 2 }}>
+    <Paper elevation={2} sx={{ p: 2, mb: 2, borderRadius: 2 }} data-testid={`opportunity-list-item-${opportunity.id}`}>
       {/* --- Top Section: Title + Edit/Delete --- */}
       <Box sx={{
         display: 'flex',
@@ -64,18 +64,18 @@ const OpportunityListItem = ({
         flexWrap: 'wrap',
         mb: 1
       }}>
-        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+        <Typography variant="h6" sx={{ fontWeight: 'bold' }} data-testid={`opportunity-item-title-${opportunity.id}`}>
           {opportunity.title}
         </Typography>
         {/* Edit and Delete Icons */}
         <Box sx={{ display: 'flex', gap: 1 }}>
           {isProfessorView && onEdit && (
-            <IconButton size="small" onClick={() => onEdit(opportunity)}>
+            <IconButton size="small" onClick={() => onEdit(opportunity)} data-testid={`opportunity-item-edit-button-${opportunity.id}`}>
               <EditIcon fontSize="inherit" />
             </IconButton>
           )}
           {isProfessorView && onDelete && (
-            <IconButton size="small" onClick={() => onDelete(opportunity.id)}>
+            <IconButton size="small" onClick={() => onDelete(opportunity.id)} data-testid={`opportunity-item-delete-button-${opportunity.id}`}>
               <DeleteIcon fontSize="inherit" color="error" />
             </IconButton>
           )}
@@ -96,11 +96,13 @@ const OpportunityListItem = ({
           label={opportunity.type || 'General'}
           size="small"
           color="default"
+          data-testid={`opportunity-item-type-${opportunity.id}`} // <<< ADDED
         />
 
         {/* View Interested / Mark Interest Buttons */}
         {isProfessorView && opportunity.allowInterest && onViewInterested && (
           <Button
+            data-testid={`opportunity-item-view-interested-button-${opportunity.id}`}
             size="small"
             startIcon={<GroupIcon />}
             onClick={() => onViewInterested(opportunity.id)}
@@ -113,6 +115,7 @@ const OpportunityListItem = ({
 
         {isStudentView && opportunity.allowInterest && !isAlreadyInterested && (
           <Button
+            data-testid={`opportunity-item-mark-interest-button-${opportunity.id}`}
             variant="contained"
             size="small"
             startIcon={isProcessingInterest ? <CircularProgress size={16} color="inherit" /> : <FavoriteBorderIcon fontSize="small" />}
@@ -126,6 +129,7 @@ const OpportunityListItem = ({
 
         {isStudentView && opportunity.allowInterest && isAlreadyInterested && (
           <Button
+            data-testid={`opportunity-item-remove-interest-button-${opportunity.id}`}
             variant="outlined"
             size="small"
             color="error"
@@ -165,7 +169,7 @@ const OpportunityListItem = ({
       <Divider sx={{ my: 1.5 }} />
 
       {/* --- Description Section --- */}
-      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'break-word', mb: 1 }}>
+      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'break-word', mb: 1 }} data-testid={`opportunity-item-desc-${opportunity.id}`}>
         {opportunity.description}
       </Typography>
 

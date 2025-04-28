@@ -60,16 +60,89 @@ describe('Student Dashboard - Profile Tab', () => {
       // --- End Revert ---
     });
   
-     it('should allow editing and saving the student\'s major', () => {
-       // TODO: Use 'profile-major' prefix and similar steps
+    it('should allow editing and saving the student\'s major', () => {
+        const newMajor = `Test Major ${Date.now()}`;
+        const testIdPrefix = 'profile-major';
+   
+        cy.get(`[data-testid="${testIdPrefix}-edit-button"]`).should('be.visible').click();
+        cy.get(`[data-testid="${testIdPrefix}-input-wrapper"]`).should('be.visible')
+          .find('input').clear().type(newMajor);
+        cy.get(`[data-testid="${testIdPrefix}-save-button"]`).should('be.visible').click();
+        cy.get(`[data-testid="${testIdPrefix}-display"]`, { timeout: 10000 })
+          .should('be.visible').and('contain', newMajor);
+        cy.reload();
+        cy.get(`[data-testid="${testIdPrefix}-display"]`, { timeout: 10000 })
+          .should('be.visible').and('contain', newMajor);
+   
+        // Revert (Optional - revert to empty or original value if needed)
+        cy.get(`[data-testid="${testIdPrefix}-edit-button"]`).should('be.visible').click();
+        cy.get(`[data-testid="${testIdPrefix}-input-wrapper"]`).should('be.visible')
+          .find('input').clear(); // Clear it back to empty
+        cy.get(`[data-testid="${testIdPrefix}-save-button"]`).should('be.visible').click();
+        cy.get(`[data-testid="${testIdPrefix}-display"]`, { timeout: 10000 })
+          .should('be.visible').and('contain', '(Not set)'); // Check for empty text
      });
-  
+   
      it('should allow editing and saving the student\'s year', () => {
-       // TODO: Use 'profile-year' prefix and similar steps
+        const newYear = `Test Year ${Date.now()}`;
+        const testIdPrefix = 'profile-year';
+   
+        cy.get(`[data-testid="${testIdPrefix}-edit-button"]`).should('be.visible').click();
+        cy.get(`[data-testid="${testIdPrefix}-input-wrapper"]`).should('be.visible')
+          .find('input').clear().type(newYear);
+        cy.get(`[data-testid="${testIdPrefix}-save-button"]`).should('be.visible').click();
+        cy.get(`[data-testid="${testIdPrefix}-display"]`, { timeout: 10000 })
+          .should('be.visible').and('contain', newYear);
+        cy.reload();
+        cy.get(`[data-testid="${testIdPrefix}-display"]`, { timeout: 10000 })
+          .should('be.visible').and('contain', newYear);
+   
+        // Revert
+        cy.get(`[data-testid="${testIdPrefix}-edit-button"]`).should('be.visible').click();
+        cy.get(`[data-testid="${testIdPrefix}-input-wrapper"]`).should('be.visible')
+          .find('input').clear();
+        cy.get(`[data-testid="${testIdPrefix}-save-button"]`).should('be.visible').click();
+        cy.get(`[data-testid="${testIdPrefix}-display"]`, { timeout: 10000 })
+          .should('be.visible').and('contain', '(Not set)');
      });
-  
+   
      it('should allow editing and saving the student\'s description', () => {
-       // TODO: Use 'profile-description' prefix. Remember to .find('textarea') for input.
-     });
-  
+        const newDescription = `Test student description added by Cypress at ${new Date().toLocaleTimeString()}`;
+        const testIdPrefix = 'profile-description';
+    
+        cy.get(`[data-testid="${testIdPrefix}-edit-button"]`).should('be.visible').click();
+    
+        // *** APPLY THE FIX HERE ***
+        cy.get(`[data-testid="${testIdPrefix}-input-wrapper"]`)
+          .should('be.visible')
+          .find('textarea')      // Find textareas
+          .filter(':visible')    // Filter for the visible one
+          .first()               // Select the first visible one
+          .clear({ force: true })  // Force clear
+          .type(newDescription, { force: true }); // Force type
+        // *** END FIX ***
+    
+        cy.get(`[data-testid="${testIdPrefix}-save-button"]`).should('be.visible').click();
+        cy.get(`[data-testid="${testIdPrefix}-display"]`, { timeout: 10000 })
+          .should('be.visible').and('include.text', newDescription.substring(0, 50)); // Check partial text
+        cy.reload();
+        cy.get(`[data-testid="${testIdPrefix}-display"]`, { timeout: 10000 })
+          .should('be.visible').and('include.text', newDescription.substring(0, 50));
+    
+        // Revert
+        cy.get(`[data-testid="${testIdPrefix}-edit-button"]`).should('be.visible').click();
+        cy.get(`[data-testid="${testIdPrefix}-input-wrapper"]`).should('be.visible')
+        .find('textarea')
+        .filter(':visible')
+        .first()
+        .clear({ force: true }); // Force clear
+        cy.get(`[data-testid="${testIdPrefix}-save-button"]`).should('be.visible').click();
+
+        // --- CHANGE THIS ASSERTION ---
+        // Check for the actual PLACEHOLDER text displayed when the value is empty
+        cy.get(`[data-testid="${testIdPrefix}-display"]`, { timeout: 10000 })
+        .should('be.visible')
+        .and('contain', '(Tell professors a bit about yourself)'); // <<< Use the placeholder text
+        // --- END CHANGE ---
+      });
   });

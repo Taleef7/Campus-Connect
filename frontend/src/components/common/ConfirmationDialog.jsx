@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 /* eslint-disable no-unused-vars */
 // frontend/src/components/common/ConfirmationDialog.jsx
 import React from 'react';
@@ -17,7 +18,10 @@ const ConfirmationDialog = ({
     message = "Are you sure you want to proceed? This action cannot be undone.", // Default message
     confirmText = "Confirm", // Default confirm button text
     cancelText = "Cancel", // Default cancel button text
-    isProcessing = false // Optional: disable buttons while processing confirm action
+    isProcessing = false, // Optional: disable buttons while processing confirm action
+    dialogTestId = "confirmation-dialog",
+    confirmButtonTestId = "confirmation-dialog-confirm-button",
+    cancelButtonTestId = "confirmation-dialog-cancel-button"
 }) => {
 
     return (
@@ -26,6 +30,7 @@ const ConfirmationDialog = ({
             onClose={() => !isProcessing && onClose()} // Prevent closing while processing
             aria-labelledby="confirmation-dialog-title"
             aria-describedby="confirmation-dialog-description"
+            data-testid={dialogTestId} // <<< ADDED TEST ID
         >
             <DialogTitle id="confirmation-dialog-title">
                 {title}
@@ -36,7 +41,7 @@ const ConfirmationDialog = ({
                 </DialogContentText>
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose} disabled={isProcessing}>
+                <Button onClick={onClose} disabled={isProcessing} data-testid={cancelButtonTestId}>
                     {cancelText}
                 </Button>
                  {/* Make confirm button stand out, often uses primary or error color */}
@@ -46,6 +51,7 @@ const ConfirmationDialog = ({
                     variant="contained" // Make it more prominent
                     autoFocus // Focus on confirm by default
                     disabled={isProcessing}
+                    data-testid={confirmButtonTestId}
                 >
                     {isProcessing ? "Processing..." : confirmText}
                 </Button>

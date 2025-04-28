@@ -568,6 +568,7 @@ const ProfessorDashboard = () => {
               </Box>
 
               <Button
+                data-testid="post-opportunity-button"
                 variant="contained"
                 startIcon={<AddIcon />}
                 onClick={handleOpenAddOpportunityDialog}
@@ -589,16 +590,18 @@ const ProfessorDashboard = () => {
             {loadingOpportunities ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}> <CircularProgress /> </Box>
             ) : opportunities.length > 0 ? (
-                opportunities.map((opp) => (
+              <Stack spacing={2} sx={{ mt: 2 }} data-testid="opportunity-list-container">
+                {opportunities.map((opp) => (
                     <OpportunityListItem
                         key={opp.id}
                         opportunity={opp}
-                        onEdit={handleOpenEditOpportunityDialog} 
-                        onDelete={handleDeleteOpportunity} 
-                        onViewInterested={handleViewInterested} 
+                        onEdit={handleOpenEditOpportunityDialog}
+                        onDelete={handleDeleteOpportunity}
+                        onViewInterested={handleViewInterested}
                         viewMode="professor"
                     />
-                ))
+                ))}
+                </Stack>
             ) : (
                 <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', p: 3 }}>
                     You haven&apos;t posted any opportunities yet.
