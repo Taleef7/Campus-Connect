@@ -1,6 +1,7 @@
 // frontend/src/App.jsx
 import { Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
+import { Box, CircularProgress } from '@mui/material'; // Import Box and CircularProgress
 import ProtectedRoute from './components/auth/ProtectedRoute';
 // Lazy load pages
 const LandingPage = lazy(() => import('./pages/LandingPage'));
@@ -12,8 +13,21 @@ const DirectoryPage = lazy(() => import('./pages/DirectoryPage'));
 const UserProfilePage = lazy(() => import('./pages/UserProfilePage'));
 
 const App = () => {
+  const centeredLoader = (
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh', // Take full viewport height
+      }}
+    >
+      <CircularProgress />
+    </Box>
+  );
+
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={centeredLoader}> {/* Use the styled loader */}
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />

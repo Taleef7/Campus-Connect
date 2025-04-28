@@ -15,7 +15,7 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd'; // Icon for Signup
 // --- TODO: Replace with a real, high-quality background image URL ---
 // Consider a blurred Purdue campus photo or a professional abstract background
 // You can host it in Firebase Storage or use a direct link.
-import bdImage from '../assets/Mastadon.jpg'; // Placeholder image
+import bdImage from '../assets/Mastadon.webp'; // Placeholder image
 
 const LandingPage = () => {
 
@@ -72,7 +72,7 @@ const LandingPage = () => {
         </Fade>
         <Fade in={true} timeout={1500}>
           <Typography variant="h5" component="p" sx={{ mb: 4, maxWidth: '700px', color: 'rgba(255, 255, 255, 0.9)', fontSize: { xs: '1.1rem', sm: '1.25rem'} }}>
-            Bridging the gap between students and faculty at Purdue. Discover opportunities, connect with professors, and enhance your academic journey.
+            Bridging the gap between students and faculty at Purdue.
           </Typography>
         </Fade>
         {/* --- UPDATED BUTTONS --- */}
@@ -130,7 +130,7 @@ const LandingPage = () => {
             <FeatureCard
               icon={<WorkIcon />}
               title="Find Opportunities"
-              description="Students: Discover TA, research, grader, and other campus positions posted directly by professors. Professors: Easily reach interested and qualified students."
+              description="Discover TA, research, grader, and other campus positions posted directly by professors who in turn can easily reach interested and qualified students."
             />
           </Grid>
           {/* Feature 2 */}
@@ -138,7 +138,7 @@ const LandingPage = () => {
             <FeatureCard
               icon={<ConnectWithoutContactIcon />}
               title="Connect Directly"
-              description="Streamline communication. Students express interest, and professors manage potential candidates all in one place."
+              description="Streamline communication, allowing students to express their interest and professors to manage potential candidates all in one place."
             />
           </Grid>
           {/* Feature 3 */}
