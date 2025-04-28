@@ -220,9 +220,8 @@ const groupedDetailedExperiences = groupExperiencesByType(detailedExperiences);
                     coverLink={profileData.coverLink || null}
                     photoLink={profileData.photoLink || null}
                     professorName={profileData.name}
-                    onEditCover={() => {}} onViewCover={() => {}}
-                    onEditPhoto={() => {}} onViewPhoto={() => {}}
                 />
+
                   {/* --- Tabs for Profile Sections --- */}
                 <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
                 <Tabs value={tabValue} onChange={handleTabChange} aria-label="User profile sections">

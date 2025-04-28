@@ -24,30 +24,34 @@ const ProfileHeader = ({
   const initials = getInitials();
 
   const handleCoverClick = () => {
-    if (coverLink) {
+    if (coverLink && onViewCover) {
       onViewCover();
-    } else {
+    } else if (onEditCover) {
       onEditCover();
     }
   };
 
   const handlePhotoClick = (e) => {
     e.stopPropagation();
-    if (photoLink) {
+    if (photoLink && onViewPhoto) {
       onViewPhoto();
-    } else {
+    } else if (onEditPhoto) {
       onEditPhoto();
     }
   };
 
   const handleCoverEditButtonClick = (e) => {
     e.stopPropagation();
-    onEditCover();
+    if (onEditCover) {
+      onEditCover();
+    }
   };
 
   const handlePhotoEditButtonClick = (e) => {
     e.stopPropagation();
-    onEditPhoto();
+    if (onEditPhoto) {
+      onEditPhoto();
+    }
   };
 
   return (
@@ -61,7 +65,7 @@ const ProfileHeader = ({
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         borderRadius: 1,
-        cursor: 'pointer',
+        cursor: onEditCover || onViewCover ? 'pointer' : 'default',
         '&:hover .cover-hover-edit': { opacity: 1 },
       }}
       onClick={handleCoverClick}
@@ -69,24 +73,26 @@ const ProfileHeader = ({
       onMouseLeave={() => setCoverHover(false)}
     >
       {/* Edit Cover Button */}
-      <IconButton
-        className="cover-hover-edit"
-        size="small"
-        sx={{
-          position: 'absolute',
-          top: 8,
-          right: 8,
-          color: 'white',
-          backgroundColor: 'rgba(0, 0, 0, 0.4)',
-          opacity: coverHover ? 1 : 0,
-          transition: 'opacity 0.2s',
-          '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.7)' },
-        }}
-        onClick={handleCoverEditButtonClick}
-        aria-label="Edit cover photo"
-      >
-        <EditIcon fontSize="small" />
-      </IconButton>
+      {onEditCover && (
+        <IconButton
+          className="cover-hover-edit"
+          size="small"
+          sx={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            color: 'white',
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            opacity: coverHover ? 1 : 0,
+            transition: 'opacity 0.2s',
+            '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.7)' },
+          }}
+          onClick={handleCoverEditButtonClick}
+          aria-label="Edit cover photo"
+        >
+          <EditIcon fontSize="small" />
+        </IconButton>
+      )}
 
       {/* Avatar with Edit Button */}
       <Box
@@ -101,11 +107,11 @@ const ProfileHeader = ({
           borderColor: 'background.paper',
           borderRadius: '50%',
           bgcolor: 'grey.300',
-          overflow: 'visible', // <<< IMPORTANT: allow icon to go outside
+          overflow: 'visible',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          cursor: 'pointer',
+          cursor: onEditPhoto || onViewPhoto ? 'pointer' : 'default',
           boxShadow: 3,
         }}
         onClick={handlePhotoClick}
@@ -124,29 +130,31 @@ const ProfileHeader = ({
           {!photoLink && initials}
         </Avatar>
 
-        {/* Edit Icon on Avatar (properly placed) */}
-        <IconButton
-          size="small"
-          sx={{
-            position: 'absolute',
-            bottom: 0,       // <<< perfectly sits at bottom
-            right: 0,        // <<< perfectly sits at right
-            backgroundColor: 'white',  // white circle background
-            color: 'text.secondary',   // <<< like other edit icons
-            border: '1px solid lightgrey',
-            width: 32,       // fixed size
-            height: 32,
-            transition: 'background-color 0.2s, transform 0.2s',
-            '&:hover': {
-              backgroundColor: 'grey.200',
-              transform: 'scale(1.15)',
-            },
-          }}
-          onClick={handlePhotoEditButtonClick}
-          aria-label="Edit profile photo"
-        >
-          <EditIcon fontSize="small" />
-        </IconButton>
+        {/* Edit Icon on Avatar */}
+        {onEditPhoto && (
+          <IconButton
+            size="small"
+            sx={{
+              position: 'absolute',
+              bottom: 0,
+              right: 0,
+              backgroundColor: 'white',
+              color: 'text.secondary',
+              border: '1px solid lightgrey',
+              width: 32,
+              height: 32,
+              transition: 'background-color 0.2s, transform 0.2s',
+              '&:hover': {
+                backgroundColor: 'grey.200',
+                transform: 'scale(1.15)',
+              },
+            }}
+            onClick={handlePhotoEditButtonClick}
+            aria-label="Edit profile photo"
+          >
+            <EditIcon fontSize="small" />
+          </IconButton>
+        )}
       </Box>
     </Box>
   );
