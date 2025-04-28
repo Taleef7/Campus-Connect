@@ -92,6 +92,18 @@ const ProfessorDashboard = () => {
   const navigate = useNavigate();
   const storage = getStorage(app);
 
+
+  {/* Define the prefixes */}
+  const profileTestIdPrefixes = {
+    name: 'prof-profile-name',
+    headline: 'prof-profile-headline',
+    pronouns: 'prof-profile-pronouns',
+    department: 'prof-profile-department',
+    about: 'prof-profile-about',
+    // resume: 'prof-profile-resume' // If you add to FileUploadField
+  };
+
+
   // +++ UPDATED useEffect for Realtime Professor Data +++
   useEffect(() => {
     setUiLoading(true);
@@ -487,18 +499,19 @@ const ProfessorDashboard = () => {
          {isSaving && (<Box sx={{ /* ... Saving overlay ... */ }}> <CircularProgress /> </Box>)}
 
         <Tabs
+            data-testid="prof-dashboard-tabs-container"
             value={tabValue}
             onChange={handleTabChange}
-            variant="fullWidth" 
+            variant="fullWidth"
             aria-label="Professor Dashboard Tabs"
             textColor="primary"
             indicatorColor="primary"
             sx={{ borderBottom: 1, borderColor: 'divider' }}
         >
-          <Tab label="Profile" {...a11yProps(0)} sx={tabHoverSx}/>
-          <Tab label="Experience" {...a11yProps(1)} sx={tabHoverSx}/>
-          <Tab label="Courses" {...a11yProps(2)} sx={tabHoverSx}/>
-          <Tab label="Opportunities" {...a11yProps(3)} sx={tabHoverSx}/> 
+          <Tab data-testid="prof-tab-profile" label="Profile" {...a11yProps(0)} sx={tabHoverSx}/>
+          <Tab data-testid="prof-tab-experience" label="Experience" {...a11yProps(1)} sx={tabHoverSx}/>
+          <Tab data-testid="prof-tab-courses" label="Courses" {...a11yProps(2)} sx={tabHoverSx}/>
+          <Tab data-testid="prof-tab-opportunities" label="Opportunities" {...a11yProps(3)} sx={tabHoverSx}/>
         </Tabs>
 
         <TabPanel value={tabValue} index={0}>
@@ -511,8 +524,10 @@ const ProfessorDashboard = () => {
              onEditPhoto={handleTriggerEditPhoto}
              onViewPhoto={handleTriggerViewPhoto}
           />
+
           {/* --- Render ProfileInfoSection --- */}
           <ProfileInfoSection
+            testIdPrefixes={profileTestIdPrefixes} // <<< PASS THE PREFIXES
             professorData={professorData}
             isSaving={isSaving}
             handleNameSave={handleNameSave}
@@ -522,6 +537,12 @@ const ProfessorDashboard = () => {
             handleResumeSave={handleResumeSave}
             handleResumeDelete={handleResumeDelete}
             handleDepartmentSave={handleDepartmentSave}
+            // You might need to pass prefixes down if ProfileInfoSection renders EditableFields
+            // testIdPrefixes={{
+            //  name: 'prof-profile-name',
+            //  headline: 'prof-profile-headline',
+            //  // etc.
+            // }}
           />
         </TabPanel>
 
@@ -539,7 +560,7 @@ const ProfessorDashboard = () => {
                 gap: 2,
                 mb: 2,
               }}
-            >     
+            >
               <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
                 <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
                   My Posted Opportunities
@@ -547,6 +568,7 @@ const ProfessorDashboard = () => {
               </Box>
 
               <Button
+                data-testid="post-opportunity-button"
                 variant="contained"
                 startIcon={<AddIcon />}
                 onClick={handleOpenAddOpportunityDialog}
@@ -568,16 +590,18 @@ const ProfessorDashboard = () => {
             {loadingOpportunities ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}> <CircularProgress /> </Box>
             ) : opportunities.length > 0 ? (
-                opportunities.map((opp) => (
+              <Stack spacing={2} sx={{ mt: 2 }} data-testid="opportunity-list-container">
+                {opportunities.map((opp) => (
                     <OpportunityListItem
                         key={opp.id}
                         opportunity={opp}
-                        onEdit={handleOpenEditOpportunityDialog} 
-                        onDelete={handleDeleteOpportunity} 
-                        onViewInterested={handleViewInterested} 
+                        onEdit={handleOpenEditOpportunityDialog}
+                        onDelete={handleDeleteOpportunity}
+                        onViewInterested={handleViewInterested}
                         viewMode="professor"
                     />
-                ))
+                ))}
+                </Stack>
             ) : (
                 <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', p: 3 }}>
                     You haven&apos;t posted any opportunities yet.

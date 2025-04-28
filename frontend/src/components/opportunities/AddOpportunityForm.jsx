@@ -91,10 +91,11 @@ const AddOpportunityForm = ({ open, onClose, onSave, initialData = null, isSavin
   };
 
   return (
-    <Dialog open={open} onClose={() => !isSaving && onClose()} maxWidth="sm" fullWidth> {/* Prevent closing while saving */}
+    <Dialog open={open} onClose={() => !isSaving && onClose()} maxWidth="sm" fullWidth data-testid="opportunity-form-dialog"> {/* Prevent closing while saving */}
       <DialogTitle>{initialData ? 'Edit Opportunity Post' : 'Create New Opportunity Post'}</DialogTitle>
       <DialogContent>
         <TextField
+          data-testid="opportunity-title-input" // <<< ADDED
           autoFocus
           margin="dense"
           name="title"
@@ -110,6 +111,7 @@ const AddOpportunityForm = ({ open, onClose, onSave, initialData = null, isSavin
           disabled={isSaving}
         />
         <TextField
+          data-testid="opportunity-description-input" // <<< ADDED
           margin="dense"
           name="description"
           label="Description"
@@ -125,7 +127,7 @@ const AddOpportunityForm = ({ open, onClose, onSave, initialData = null, isSavin
           helperText={formErrors.description}
           disabled={isSaving}
         />
-        <FormControl fullWidth margin="dense" required error={!!formErrors.type} disabled={isSaving}>
+        <FormControl data-testid="opportunity-type-select" fullWidth margin="dense" required error={!!formErrors.type} disabled={isSaving}>
           <InputLabel id="opportunity-type-label">Type</InputLabel>
           <Select
             labelId="opportunity-type-label"
@@ -145,6 +147,7 @@ const AddOpportunityForm = ({ open, onClose, onSave, initialData = null, isSavin
            {formErrors.type && <FormHelperText>{formErrors.type}</FormHelperText>}
         </FormControl>
          <TextField
+          data-testid="opportunity-deadline-input"
           margin="dense"
           name="deadline"
           label="Application Deadline (Optional)"
@@ -161,6 +164,7 @@ const AddOpportunityForm = ({ open, onClose, onSave, initialData = null, isSavin
         <FormControlLabel
           control={
             <Checkbox
+              data-testid="opportunity-allow-interest-checkbox"
               name="allowInterest"
               checked={formData.allowInterest}
               onChange={handleChange}
@@ -174,8 +178,8 @@ const AddOpportunityForm = ({ open, onClose, onSave, initialData = null, isSavin
 
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} disabled={isSaving}>Cancel</Button>
-        <Button onClick={handleSave} variant="contained" disabled={isSaving}>
+        <Button data-testid="opportunity-form-cancel-button" onClick={onClose} disabled={isSaving}>Cancel</Button>
+        <Button data-testid="opportunity-form-save-button" onClick={handleSave} variant="contained" disabled={isSaving}>
           {isSaving ? <CircularProgress size={24} /> : (initialData ? 'Update Post' : 'Create Post')}
         </Button>
       </DialogActions>

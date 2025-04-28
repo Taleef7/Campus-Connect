@@ -43,26 +43,35 @@ const ProfessorCourses = () => {
 
   useEffect(() => {
     let unsubscribe = () => {};
+    console.log(`Courses Effect: Running. User: ${user?.uid}`); // <<< ADD LOG
     if (user) {
       setLoading(true);
+      console.log(`Courses Effect: Setting up listener for professorId = ${user.uid}`); // <<< ADD LOG
       const q = query(collection(db, 'courses'), where('professorId', '==', user.uid));
 
       unsubscribe = onSnapshot(q, (querySnapshot) => {
+        console.log(`Courses Effect: onSnapshot fired! Found ${querySnapshot.size} docs.`); // <<< ADD LOG
         const fetchedCourses = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
+        console.log('Courses Effect: Fetched courses:', fetchedCourses); // <<< ADD LOG
         setCourses(fetchedCourses);
         setLoading(false);
       }, (error) => {
+        console.error('Courses Effect: Error in onSnapshot:', error); // <<< ADD LOG
         console.error('Error listening to courses:', error);
         setLoading(false);
       });
     } else {
+      console.log('Courses Effect: No user found, clearing courses.'); // <<< ADD LOG
       setCourses([]);
       setLoading(false);
     }
-    return () => unsubscribe();
+    return () =>{
+      console.log('Courses Effect: Cleaning up listener.'); // <<< ADD LOG
+      unsubscribe();
+    }
   }, [user]);
 
   const handleRemoveCourse = async (id) => {
@@ -153,6 +162,7 @@ const ProfessorCourses = () => {
         </Box>
 
         <Button
+          data-testid="add-course-button" // <<< ADDED TEST ID
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => {
@@ -175,7 +185,7 @@ const ProfessorCourses = () => {
       </Box>
 
       {/* Course Cards */}
-      <Grid container spacing={3} justifyContent="flex-start">
+      <Grid container spacing={3} justifyContent="flex-start" data-testid="course-list-container">
         {!loading && courses.length === 0 && (
           <Typography sx={{ color: 'text.secondary', textAlign: 'center' }}>
             No courses added yet.
@@ -183,7 +193,7 @@ const ProfessorCourses = () => {
         )}
 
         {courses.map((course) => (
-          <Grid item xs={12} sm={6} md={4} key={course.id}>
+          <Grid item xs={12} sm={6} md={4} key={course.id} data-testid={`course-list-item-${course.id}`}>
             <Card
               sx={{
                 width: '100%',
@@ -213,8 +223,8 @@ const ProfessorCourses = () => {
               />
 
               <CardContent sx={{ pt: 5, flexGrow: 1 }}>
-                <Typography variant="h6" gutterBottom>{course.courseName}</Typography>
-                <Typography variant="body2" sx={{ mb: 1, wordBreak: 'break-word' }}>
+                <Typography variant="h6" gutterBottom data-testid={`course-item-name-${course.id}`}>{course.courseName}</Typography>
+                <Typography variant="body2" sx={{ mb: 1, wordBreak: 'break-word' }} data-testid={`course-item-desc-${course.id}`}>
                   {course.description}
                 </Typography>
 
@@ -239,10 +249,10 @@ const ProfessorCourses = () => {
                   pb: 2,
                 }}
               >
-                <Button onClick={() => handleEditCourse(course)} color="primary" size="small" startIcon={<EditIcon />}>
+                <Button data-testid={`course-item-edit-button-${course.id}`} onClick={() => handleEditCourse(course)} color="primary" size="small" startIcon={<EditIcon />}>
                   Edit
                 </Button>
-                <Button onClick={() => handleRemoveCourse(course.id)} startIcon={<DeleteIcon />} color="error" size="small">
+                <Button data-testid={`course-item-delete-button-${course.id}`} onClick={() => handleRemoveCourse(course.id)} startIcon={<DeleteIcon />} color="error" size="small">
                   Delete
                 </Button>
               </Box>
@@ -252,10 +262,11 @@ const ProfessorCourses = () => {
       </Grid>
 
       {/* Add/Edit Dialog */}
-      <Dialog open={isFormVisible} onClose={() => setFormVisible(false)}>
+      <Dialog open={isFormVisible} onClose={() => setFormVisible(false)} data-testid="course-form-dialog">
         <DialogTitle>{editingCourseId ? 'Edit Course' : 'Add New Course'}</DialogTitle>
         <DialogContent>
           <TextField
+            data-testid="course-name-input"
             label="Course Name"
             fullWidth
             margin="normal"
@@ -264,6 +275,7 @@ const ProfessorCourses = () => {
             onChange={handleInputChange}
           />
           <TextField
+            data-testid="course-description-input"
             label="Description"
             fullWidth
             margin="normal"
@@ -272,14 +284,16 @@ const ProfessorCourses = () => {
             onChange={handleInputChange}
           />
           <TextField
+            data-testid="course-link-input"
             label="Course Link"
             fullWidth
             margin="normal"
             name="link"
+            type="url"
             value={newCourse.link}
             onChange={handleInputChange}
           />
-          <FormControl fullWidth margin="normal">
+          <FormControl fullWidth margin="normal" data-testid="course-status-select">
             <InputLabel>Status</InputLabel>
             <Select
               label="Status"
@@ -293,10 +307,10 @@ const ProfessorCourses = () => {
           </FormControl>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setFormVisible(false)} color="secondary">
+          <Button data-testid="course-form-cancel-button" onClick={() => setFormVisible(false)} color="secondary">
             Cancel
           </Button>
-          <Button onClick={handleAddCourse} color="primary">
+          <Button data-testid="course-form-save-button" onClick={handleAddCourse} color="primary">
             {editingCourseId ? 'Update Course' : 'Add Course'}
           </Button>
         </DialogActions>
