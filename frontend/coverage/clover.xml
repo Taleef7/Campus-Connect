@@ -1,87 +1,174 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1745787436084" clover="3.2.0">
-  <project timestamp="1745787436085" name="All files">
-    <metrics statements="245" coveredstatements="144" conditionals="257" coveredconditionals="143" methods="60" coveredmethods="28" elements="562" coveredelements="315" complexity="0" loc="245" ncloc="245" packages="2" files="7" classes="7"/>
-    <package name="common">
-      <metrics statements="70" coveredstatements="28" conditionals="77" coveredconditionals="29" methods="18" coveredmethods="5"/>
-      <file name="EditableField.jsx" path="C:\Users\gowth\OneDrive\Desktop\CC\Campus-Connect\frontend\src\components\common\EditableField.jsx">
-        <metrics statements="18" coveredstatements="9" conditionals="24" coveredconditionals="12" methods="6" coveredmethods="2"/>
+<coverage generated="1745799833001" clover="3.2.0">
+  <project timestamp="1745799833001" name="All files">
+    <metrics statements="314" coveredstatements="231" conditionals="299" coveredconditionals="203" methods="72" coveredmethods="51" elements="685" coveredelements="485" complexity="0" loc="314" ncloc="314" packages="4" files="11" classes="11"/>
+    <package name="auth">
+      <metrics statements="33" coveredstatements="26" conditionals="8" coveredconditionals="5" methods="4" coveredmethods="4"/>
+      <file name="ProtectedRoute.jsx" path="C:\Users\gowth\OneDrive\Desktop\CC\Campus-Connect\frontend\src\components\auth\ProtectedRoute.jsx">
+        <metrics statements="33" coveredstatements="26" conditionals="8" coveredconditionals="5" methods="4" coveredmethods="4"/>
         <line num="10" count="1" type="stmt"/>
-        <line num="23" count="16" type="stmt"/>
-        <line num="24" count="16" type="cond" truecount="2" falsecount="0"/>
-        <line num="26" count="16" type="stmt"/>
-        <line num="27" count="16" type="cond" truecount="2" falsecount="0"/>
-        <line num="30" count="16" type="stmt"/>
-        <line num="31" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="32" count="0" type="stmt"/>
-        <line num="35" count="16" type="stmt"/>
-        <line num="36" count="0" type="stmt"/>
-        <line num="37" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="40" count="16" type="stmt"/>
-        <line num="41" count="0" type="stmt"/>
-        <line num="42" count="0" type="stmt"/>
-        <line num="43" count="0" type="stmt"/>
+        <line num="11" count="2" type="stmt"/>
+        <line num="12" count="2" type="stmt"/>
+        <line num="13" count="2" type="stmt"/>
+        <line num="14" count="2" type="stmt"/>
+        <line num="16" count="2" type="stmt"/>
+        <line num="18" count="2" type="stmt"/>
+        <line num="19" count="1" type="stmt"/>
+        <line num="20" count="1" type="stmt"/>
+        <line num="21" count="1" type="stmt"/>
+        <line num="22" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="23" count="1" type="stmt"/>
+        <line num="24" count="1" type="stmt"/>
+        <line num="25" count="1" type="stmt"/>
+        <line num="27" count="0" type="stmt"/>
+        <line num="28" count="0" type="stmt"/>
+        <line num="29" count="0" type="stmt"/>
+        <line num="31" count="1" type="stmt"/>
+        <line num="32" count="1" type="stmt"/>
+        <line num="35" count="1" type="stmt"/>
+        <line num="36" count="1" type="stmt"/>
+        <line num="37" count="1" type="stmt"/>
+        <line num="41" count="2" type="cond" truecount="2" falsecount="0"/>
+        <line num="42" count="1" type="stmt"/>
+        <line num="43" count="1" type="stmt"/>
+        <line num="50" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="51" count="0" type="stmt"/>
+        <line num="52" count="0" type="stmt"/>
+        <line num="55" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="56" count="0" type="stmt"/>
+        <line num="58" count="0" type="stmt"/>
+        <line num="62" count="1" type="stmt"/>
+        <line num="63" count="1" type="stmt"/>
+      </file>
+    </package>
+    <package name="common">
+      <metrics statements="76" coveredstatements="65" conditionals="89" coveredconditionals="67" methods="21" coveredmethods="19"/>
+      <file name="ConfirmationDialog.jsx" path="C:\Users\gowth\OneDrive\Desktop\CC\Campus-Connect\frontend\src\components\common\ConfirmationDialog.jsx">
+        <metrics statements="4" coveredstatements="3" conditionals="9" coveredconditionals="2" methods="2" coveredmethods="1"/>
+        <line num="12" count="1" type="stmt"/>
+        <line num="23" count="4" type="stmt"/>
+        <line num="26" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="57" count="1" type="stmt"/>
+      </file>
+      <file name="EditableField.jsx" path="C:\Users\gowth\OneDrive\Desktop\CC\Campus-Connect\frontend\src\components\common\EditableField.jsx">
+        <metrics statements="18" coveredstatements="17" conditionals="24" coveredconditionals="21" methods="6" coveredmethods="6"/>
+        <line num="10" count="2" type="stmt"/>
+        <line num="23" count="30" type="stmt"/>
+        <line num="24" count="30" type="cond" truecount="2" falsecount="0"/>
+        <line num="26" count="30" type="stmt"/>
+        <line num="27" count="21" type="cond" truecount="2" falsecount="0"/>
+        <line num="30" count="30" type="stmt"/>
+        <line num="31" count="3" type="cond" truecount="1" falsecount="1"/>
+        <line num="32" count="3" type="stmt"/>
+        <line num="35" count="30" type="stmt"/>
+        <line num="36" count="1" type="stmt"/>
+        <line num="37" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="40" count="30" type="stmt"/>
+        <line num="41" count="1" type="stmt"/>
+        <line num="42" count="1" type="stmt"/>
+        <line num="43" count="1" type="stmt"/>
         <line num="45" count="0" type="stmt"/>
-        <line num="49" count="16" type="stmt"/>
-        <line num="90" count="0" type="stmt"/>
+        <line num="49" count="30" type="stmt"/>
+        <line num="90" count="2" type="stmt"/>
       </file>
       <file name="EditableTextArea.jsx" path="C:\Users\gowth\OneDrive\Desktop\CC\Campus-Connect\frontend\src\components\common\EditableTextArea.jsx">
-        <metrics statements="18" coveredstatements="9" conditionals="22" coveredconditionals="12" methods="6" coveredmethods="2"/>
-        <line num="10" count="1" type="stmt"/>
-        <line num="22" count="4" type="stmt"/>
-        <line num="23" count="4" type="cond" truecount="2" falsecount="0"/>
-        <line num="25" count="4" type="stmt"/>
-        <line num="26" count="4" type="cond" truecount="2" falsecount="0"/>
-        <line num="29" count="4" type="stmt"/>
-        <line num="30" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="31" count="0" type="stmt"/>
-        <line num="34" count="4" type="stmt"/>
-        <line num="35" count="0" type="stmt"/>
-        <line num="36" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="39" count="4" type="stmt"/>
-        <line num="40" count="0" type="stmt"/>
-        <line num="41" count="0" type="stmt"/>
-        <line num="42" count="0" type="stmt"/>
+        <metrics statements="18" coveredstatements="17" conditionals="22" coveredconditionals="19" methods="6" coveredmethods="6"/>
+        <line num="10" count="2" type="stmt"/>
+        <line num="22" count="18" type="stmt"/>
+        <line num="23" count="18" type="cond" truecount="2" falsecount="0"/>
+        <line num="25" count="18" type="stmt"/>
+        <line num="26" count="9" type="cond" truecount="2" falsecount="0"/>
+        <line num="29" count="18" type="stmt"/>
+        <line num="30" count="3" type="cond" truecount="1" falsecount="1"/>
+        <line num="31" count="3" type="stmt"/>
+        <line num="34" count="18" type="stmt"/>
+        <line num="35" count="1" type="stmt"/>
+        <line num="36" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="39" count="18" type="stmt"/>
+        <line num="40" count="1" type="stmt"/>
+        <line num="41" count="1" type="stmt"/>
+        <line num="42" count="1" type="stmt"/>
         <line num="44" count="0" type="stmt"/>
-        <line num="48" count="4" type="stmt"/>
-        <line num="85" count="0" type="stmt"/>
+        <line num="48" count="18" type="stmt"/>
+        <line num="85" count="2" type="stmt"/>
       </file>
       <file name="FileUploadField.jsx" path="C:\Users\gowth\OneDrive\Desktop\CC\Campus-Connect\frontend\src\components\common\FileUploadField.jsx">
-        <metrics statements="34" coveredstatements="10" conditionals="31" coveredconditionals="5" methods="6" coveredmethods="1"/>
-        <line num="12" count="1" type="stmt"/>
-        <line num="24" count="4" type="stmt"/>
-        <line num="25" count="4" type="stmt"/>
-        <line num="26" count="4" type="stmt"/>
-        <line num="28" count="4" type="stmt"/>
-        <line num="29" count="0" type="stmt"/>
-        <line num="30" count="0" type="cond" truecount="0" falsecount="2"/>
+        <metrics statements="34" coveredstatements="26" conditionals="31" coveredconditionals="23" methods="6" coveredmethods="5"/>
+        <line num="12" count="2" type="stmt"/>
+        <line num="24" count="11" type="stmt"/>
+        <line num="25" count="11" type="stmt"/>
+        <line num="26" count="11" type="stmt"/>
+        <line num="28" count="11" type="stmt"/>
+        <line num="29" count="2" type="stmt"/>
+        <line num="30" count="2" type="cond" truecount="1" falsecount="1"/>
         <line num="31" count="0" type="stmt"/>
-        <line num="33" count="0" type="stmt"/>
-        <line num="36" count="4" type="stmt"/>
+        <line num="33" count="2" type="stmt"/>
+        <line num="36" count="11" type="stmt"/>
         <line num="37" count="0" type="stmt"/>
         <line num="38" count="0" type="stmt"/>
         <line num="39" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="40" count="0" type="stmt"/>
-        <line num="44" count="4" type="stmt"/>
-        <line num="45" count="0" type="cond" truecount="0" falsecount="4"/>
-        <line num="46" count="0" type="stmt"/>
+        <line num="44" count="11" type="stmt"/>
+        <line num="45" count="1" type="cond" truecount="3" falsecount="1"/>
+        <line num="46" count="1" type="stmt"/>
         <line num="48" count="0" type="stmt"/>
-        <line num="52" count="4" type="stmt"/>
-        <line num="53" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="54" count="0" type="stmt"/>
-        <line num="55" count="0" type="stmt"/>
-        <line num="56" count="0" type="stmt"/>
-        <line num="57" count="0" type="stmt"/>
-        <line num="58" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="59" count="0" type="stmt"/>
+        <line num="52" count="11" type="stmt"/>
+        <line num="53" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="54" count="1" type="stmt"/>
+        <line num="55" count="1" type="stmt"/>
+        <line num="56" count="1" type="stmt"/>
+        <line num="57" count="1" type="stmt"/>
+        <line num="58" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="59" count="1" type="stmt"/>
         <line num="62" count="0" type="stmt"/>
-        <line num="67" count="4" type="stmt"/>
-        <line num="68" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="70" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="71" count="0" type="stmt"/>
-        <line num="72" count="0" type="stmt"/>
+        <line num="67" count="11" type="stmt"/>
+        <line num="68" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="70" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="71" count="1" type="stmt"/>
+        <line num="72" count="1" type="stmt"/>
         <line num="75" count="0" type="stmt"/>
-        <line num="81" count="4" type="stmt"/>
+        <line num="81" count="11" type="stmt"/>
+      </file>
+      <file name="SnackbarMessage.jsx" path="C:\Users\gowth\OneDrive\Desktop\CC\Campus-Connect\frontend\src\components\common\SnackbarMessage.jsx">
+        <metrics statements="2" coveredstatements="2" conditionals="3" coveredconditionals="2" methods="1" coveredmethods="1"/>
+        <line num="6" count="1" type="cond" truecount="1" falsecount="0"/>
+        <line num="7" count="3" type="stmt"/>
+      </file>
+    </package>
+    <package name="dashboard">
+      <metrics statements="30" coveredstatements="24" conditionals="22" coveredconditionals="17" methods="5" coveredmethods="5"/>
+      <file name="DashboardLayout.jsx" path="C:\Users\gowth\OneDrive\Desktop\CC\Campus-Connect\frontend\src\components\dashboard\DashboardLayout.jsx">
+        <metrics statements="30" coveredstatements="24" conditionals="22" coveredconditionals="17" methods="5" coveredmethods="5"/>
+        <line num="10" count="1" type="stmt"/>
+        <line num="11" count="9" type="stmt"/>
+        <line num="12" count="9" type="stmt"/>
+        <line num="13" count="9" type="stmt"/>
+        <line num="15" count="9" type="stmt"/>
+        <line num="16" count="9" type="stmt"/>
+        <line num="18" count="9" type="stmt"/>
+        <line num="19" count="3" type="stmt"/>
+        <line num="20" count="3" type="cond" truecount="3" falsecount="1"/>
+        <line num="21" count="3" type="stmt"/>
+        <line num="22" count="3" type="stmt"/>
+        <line num="23" count="3" type="stmt"/>
+        <line num="24" count="3" type="stmt"/>
+        <line num="25" count="3" type="cond" truecount="1" falsecount="1"/>
+        <line num="26" count="3" type="stmt"/>
+        <line num="27" count="3" type="stmt"/>
+        <line num="31" count="0" type="stmt"/>
+        <line num="33" count="0" type="stmt"/>
+        <line num="34" count="0" type="stmt"/>
+        <line num="37" count="0" type="stmt"/>
+        <line num="38" count="0" type="stmt"/>
+        <line num="41" count="3" type="stmt"/>
+        <line num="44" count="9" type="stmt"/>
+        <line num="45" count="1" type="stmt"/>
+        <line num="46" count="1" type="stmt"/>
+        <line num="47" count="1" type="stmt"/>
+        <line num="49" count="0" type="stmt"/>
+        <line num="53" count="9" type="stmt"/>
+        <line num="60" count="9" type="stmt"/>
+        <line num="62" count="9" type="stmt"/>
       </file>
     </package>
     <package name="profile">
