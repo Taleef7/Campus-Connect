@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
 // frontend/src/components/opportunities/OpportunityListItem.jsx
-
+import React from 'react'
 import { Paper, Box, Typography, Chip, IconButton, Button, Divider, CircularProgress } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
