@@ -8,6 +8,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 
 const EditableField = ({
+  testIdPrefix, // Optional: Prefix for test IDs (e.g., "student-name")
   label,                // Label for the TextField in edit mode AND display mode now
   value,                // The current value to display
   onSave,               // Async function to call when saving (receives new value)
@@ -46,9 +47,12 @@ const EditableField = ({
     }
   };
 
+  // Helper function to generate test ID only if prefix is provided
+  const addTestId = (suffix) => (testIdPrefix ? { [`data-testid`]: `${testIdPrefix}-${suffix}` } : {});
+
   return (
     // Container - align items to the start (top) for label
-    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, minHeight: '40px', width: '100%', ...containerSx }}>
+    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, minHeight: '40px', width: '100%', ...containerSx }} {...addTestId('container')}>
       {!isEditing ? (
         // --- MODIFIED Display Mode ---
          <>
@@ -68,15 +72,15 @@ const EditableField = ({
                          color: !value ? 'text.secondary' : 'inherit',
                          // Apply word break for safety, although less likely needed for single-line fields
                          overflowWrap: 'break-word',
-                         lineHeight: 1.4 // Adjust line height if needed
-                    }}
+                         lineHeight: 1.4}} // Adjust line height if needed
+                         {...addTestId('display')} // <<< ADDED TEST ID FOR DISPLAY VALUE
                 >
                      {/* Use value, fallback to emptyText. Placeholder less relevant here */}
                      {value || emptyText}
                  </Typography>
              </Box>
              {/* Edit Button */}
-             <IconButton size="small" onClick={handleEditClick} aria-label={`Edit ${label}`} disabled={isSaving} sx={{mt: 0.5 /* Adjust vertical alignment if needed */}}>
+             <IconButton size="small" onClick={handleEditClick} aria-label={`Edit ${label}`} disabled={isSaving} sx={{mt: 0.5 /* Adjust vertical alignment if needed */}} {...addTestId('edit-button')}>
                  <EditIcon fontSize="small" />
              </IconButton>
          </>
@@ -95,11 +99,15 @@ const EditableField = ({
             rows={multiline ? rows : 1}
             {...textFieldProps}
             disabled={isSaving}
+             // Add test ID to the TextField wrapper - Cypress can find input inside
+            {...addTestId('input-wrapper')} // <<< ADDED TEST ID FOR TEXTFIELD WRAPPER
+            // Alternatively, add directly to inputProps if needed, but wrapper is often easier
+            // inputProps={{ ...textFieldProps?.inputProps, ...addTestId('input') }}
           />
-          <IconButton size="small" onClick={handleSaveClick} color="success" aria-label={`Save ${label}`} disabled={isSaving}>
+          <IconButton size="small" onClick={handleSaveClick} color="success" aria-label={`Save ${label}`} disabled={isSaving} {...addTestId('save-button')}>
             <CheckIcon />
           </IconButton>
-          <IconButton size="small" onClick={handleCancelClick} color="error" aria-label={`Cancel ${label} edit`} disabled={isSaving}>
+          <IconButton size="small" onClick={handleCancelClick} color="error" aria-label={`Cancel ${label} edit`} disabled={isSaving} {...addTestId('cancel-button')}>
             <CloseIcon />
           </IconButton>
         </>

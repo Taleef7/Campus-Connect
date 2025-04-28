@@ -1,9 +1,11 @@
 {
     "student": {
+      "name": "Test Student",
       "email": "test-student@example.com",
       "password": "password123"
     },
     "professor": {
+      "name": "Test Professor",
       "email": "test-professor@example.com",
       "password": "password123"
     },

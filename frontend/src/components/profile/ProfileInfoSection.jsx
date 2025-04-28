@@ -8,6 +8,7 @@ import EditableTextArea from './../common/EditableTextArea'; // Adjust path if n
 import FileUploadField from './../common/FileUploadField'; // Adjust path if needed
 
 const ProfileInfoSection = ({
+  testIdPrefixes = {},
   professorData,
   isSaving,
   handleNameSave,
@@ -22,11 +23,12 @@ const ProfileInfoSection = ({
   const resumeLink = professorData?.resumeLink || ''; // Extract for clarity
 
   return (
-    <Box sx={{ pt: 2, pl: { xs: 0, sm: 1 } }}>
+    <Box sx={{ pt: 2, pl: { xs: 0, sm: 1 } }} >
       {/* --- Render EditableFields --- */}
       <Stack spacing={3}>
         <Box>
           <EditableField
+            testIdPrefix={testIdPrefixes.name} // <<< Pass down specific prefix
             label="Full Name"
             value={professorData?.name}
             onSave={handleNameSave}
@@ -37,6 +39,7 @@ const ProfileInfoSection = ({
             isSaving={isSaving}
           />
           <EditableField
+            testIdPrefix={testIdPrefixes.headline} // <<< Pass down specific prefix
             label="Headline/Title"
             value={professorData?.headline}
             onSave={handleHeadlineSave}
@@ -48,6 +51,7 @@ const ProfileInfoSection = ({
             isSaving={isSaving}
           />
           <EditableField
+            testIdPrefix={testIdPrefixes.pronouns} // <<< Pass down specific prefix
             label="Pronouns"
             value={professorData?.pronouns}
             onSave={handlePronounsSave}
@@ -61,6 +65,7 @@ const ProfileInfoSection = ({
 
           {/* +++ Add Department Field +++ */}
           <EditableField
+            testIdPrefix={testIdPrefixes.department} // <<< Pass down specific prefix
             label="Department"
             value={professorData?.department} // Bind to department field
             onSave={handleDepartmentSave}    // Connect to the save handler
@@ -77,6 +82,7 @@ const ProfileInfoSection = ({
           <Box sx={{ mb: 3 }}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 'medium' }}>About</Typography>
             <EditableTextArea
+              testIdPrefix={testIdPrefixes.about} // <<< Pass down specific prefix
               label="About"
               value={professorData?.about}
               onSave={handleAboutSave}
@@ -89,6 +95,7 @@ const ProfileInfoSection = ({
 
           {/* --- Render FileUploadField for Resume --- */}
           <FileUploadField
+            // testIdPrefix={testIdPrefixes.resume} // Example if needed
             label="Resume"
             fileLink={resumeLink}
             accept="application/pdf"

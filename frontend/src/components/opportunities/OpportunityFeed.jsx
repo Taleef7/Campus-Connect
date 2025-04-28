@@ -273,7 +273,7 @@ const showSnackbar = (message, severity = 'info') => {
 
           {/* Conditional Title based on view */}
           <Typography variant="h6" gutterBottom>
-            {currentView === 'all' ? 'Available Opportunities' : 'Opportunities You\'re Interested In'}
+            {currentView === 'all' ? 'Available Opportunities' : 'Your Opportunities'}
           </Typography>
 
           {/* Loading Indicator */}

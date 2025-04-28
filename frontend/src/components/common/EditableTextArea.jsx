@@ -8,6 +8,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 
 const EditableTextArea = ({
+  testIdPrefix,
   label,                // Label for the TextField in edit mode AND display mode now
   value,                // The current value to display
   onSave,               // Async function to call when saving (receives new value)
@@ -45,9 +46,12 @@ const EditableTextArea = ({
     }
   };
 
+  // Helper function to generate test ID only if prefix is provided
+  const addTestId = (suffix) => (testIdPrefix ? { [`data-testid`]: `${testIdPrefix}-${suffix}` } : {});
+
   return (
     // Container remains largely the same
-    <Box sx={{ width: '100%', position: 'relative', ...containerSx }}>
+    <Box sx={{ width: '100%', position: 'relative', ...containerSx }} {...addTestId('container')}>
       {!isEditing ? (
         // Display Mode
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
@@ -67,11 +71,12 @@ const EditableTextArea = ({
                         color: !value ? 'text.secondary' : 'inherit',
                         minHeight: '20px'
                     }}
+                    {...addTestId('display')}
                 >
                     {value?.trim() || placeholder || emptyText}
                 </Typography>
             </Box>
-            <IconButton size="small" onClick={handleEditClick} /* ... other props ... */ sx={{ mt: 1 }}>
+            <IconButton size="small" onClick={handleEditClick} /* ... other props ... */ sx={{ mt: 1 }} {...addTestId('edit-button')}>
                  <EditIcon fontSize="small" />
              </IconButton>
         </Box>
@@ -90,12 +95,15 @@ const EditableTextArea = ({
             autoFocus
             {...textFieldProps}
             disabled={isSaving}
+            {...addTestId('input-wrapper')} // <<< ADDED TEST ID FOR TEXTFIELD WRAPPER
+            // You might need to target the actual textarea element inside this wrapper in tests
+            // using .find('textarea')
           />
           <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-            <IconButton size="small" onClick={handleSaveClick} color="success" aria-label={`Save ${label}`} disabled={isSaving}>
+            <IconButton size="small" onClick={handleSaveClick} color="success" aria-label={`Save ${label}`} disabled={isSaving} {...addTestId('save-button')}>
               <CheckIcon />
             </IconButton>
-            <IconButton size="small" onClick={handleCancelClick} color="error" aria-label={`Cancel ${label} edit`} disabled={isSaving}>
+            <IconButton size="small" onClick={handleCancelClick} color="error" aria-label={`Cancel ${label} edit`} disabled={isSaving} {...addTestId('cancel-button')}>
               <CloseIcon />
             </IconButton>
           </Box>

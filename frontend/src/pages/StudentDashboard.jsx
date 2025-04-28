@@ -337,12 +337,13 @@ const StudentDashboard = () => {
                         textColor="primary"
                         indicatorColor="primary"
                         sx={{ borderBottom: 1, borderColor: 'divider' }}
+                        data-testid="dashboard-tabs-container"
                     >
                         {/* Apply hover sx to each Tab */}
-                        <Tab label="Profile" {...a11yProps(0)} sx={tabHoverSx} />
-                        <Tab label="Experience" {...a11yProps(1)} sx={tabHoverSx} />
-                        <Tab label="Courses" {...a11yProps(2)} sx={tabHoverSx} />
-                        <Tab label="Opportunities" {...a11yProps(3)} sx={tabHoverSx} />
+                        <Tab data-testid="tab-profile" label="Profile" {...a11yProps(0)} sx={tabHoverSx} />
+                        <Tab data-testid="tab-experience" label="Experience" {...a11yProps(1)} sx={tabHoverSx} />
+                        <Tab data-testid="tab-courses" label="Courses" {...a11yProps(2)} sx={tabHoverSx} />
+                        <Tab data-testid="tab-opportunities" label="Opportunities" {...a11yProps(3)} sx={tabHoverSx} />
                     </Tabs>
                     {/* --- END TABS --- */}
 
@@ -364,6 +365,7 @@ const StudentDashboard = () => {
 
                              <Box>
                                  <EditableField
+                                     testIdPrefix="profile-name"
                                      label="Full Name"
                                      value={studentData?.name}
                                      onSave={handleNameSave}
@@ -374,6 +376,7 @@ const StudentDashboard = () => {
                                  {/* Group Major and Year */}
                                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1.5, sm: 4 }} sx={{ mt: 1.5 }}> 
                                      <EditableField
+                                         testIdPrefix="profile-major"
                                          label="Major"
                                          value={studentData?.major}
                                          onSave={handleMajorSave}
@@ -385,6 +388,7 @@ const StudentDashboard = () => {
                                          containerSx={{ flexGrow: 1 }} 
                                      />
                                      <EditableField
+                                         testIdPrefix="profile-year"
                                          label="Year"
                                          value={studentData?.year}
                                          onSave={handleYearSave}
@@ -406,6 +410,7 @@ const StudentDashboard = () => {
                                 About
                               </Typography>
                               <EditableTextArea
+                                testIdPrefix="profile-description"
                                 value={studentData?.description}
                                 onSave={handleDescriptionSave}
                                 placeholder="(Tell professors a bit about yourself)"
