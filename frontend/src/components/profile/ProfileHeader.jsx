@@ -1,6 +1,5 @@
 /* eslint-disable react/prop-types */
 /* eslint-disable no-unused-vars */
-// frontend/src/components/profile/ProfileHeader.jsx
 import React, { useState } from 'react';
 import { Box, Avatar, IconButton } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
@@ -8,14 +7,13 @@ import EditIcon from '@mui/icons-material/Edit';
 const ProfileHeader = ({
   coverLink,
   photoLink,
-  professorName, // Assuming name is passed for initials fallback
+  professorName,
   onEditCover,
   onViewCover,
   onEditPhoto,
   onViewPhoto,
 }) => {
   const [coverHover, setCoverHover] = useState(false);
-  const [photoHover, setPhotoHover] = useState(false);
 
   const getInitials = () => {
     if (!professorName) return '?';
@@ -25,58 +23,60 @@ const ProfileHeader = ({
 
   const initials = getInitials();
 
-  const handleCoverMouseEnter = () => setCoverHover(true);
-  const handleCoverMouseLeave = () => setCoverHover(false);
-  const handlePhotoMouseEnter = () => setPhotoHover(true);
-  const handlePhotoMouseLeave = () => setPhotoHover(false);
-
   const handleCoverClick = () => {
-    if (coverLink) { onViewCover(); }
-    else { onEditCover(); }
+    if (coverLink) {
+      onViewCover();
+    } else {
+      onEditCover();
+    }
   };
 
-  // --- Modify handlePhotoClick ---
-  const handlePhotoClick = (e) => { // Accept event 'e'
-    e.stopPropagation(); // <<< ADD THIS LINE to stop bubbling
+  const handlePhotoClick = (e) => {
+    e.stopPropagation();
     if (photoLink) {
       onViewPhoto();
     } else {
       onEditPhoto();
     }
   };
-  // --- End modification ---
 
-  const handleCoverEditButtonClick = (e) => { e.stopPropagation(); onEditCover(); };
-  const handlePhotoEditButtonClick = (e) => { e.stopPropagation(); onEditPhoto(); };
+  const handleCoverEditButtonClick = (e) => {
+    e.stopPropagation();
+    onEditCover();
+  };
+
+  const handlePhotoEditButtonClick = (e) => {
+    e.stopPropagation();
+    onEditPhoto();
+  };
 
   return (
     <Box
       sx={{
         position: 'relative',
         height: { xs: 300, sm: 300 },
-        mb: { xs: 8, sm: 10 }, // Adjusted margin based on avatar size
-        // --- THEME BACKGROUND ---
-        // Use coverLink if available, otherwise use theme secondary color
-        backgroundImage: coverLink ? `url('${coverLink}')` : 'none', // Remove gradient
-        // Use theme's secondary color (Steel Gray) as default background
+        mb: { xs: 8, sm: 10 },
+        backgroundImage: coverLink ? `url('${coverLink}')` : 'none',
         bgcolor: coverLink ? 'transparent' : 'secondary.main',
-        // --- END THEME BACKGROUND ---
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        borderRadius: 1, // Use theme's border radius? theme.shape.borderRadius
+        borderRadius: 1,
         cursor: 'pointer',
         '&:hover .cover-hover-edit': { opacity: 1 },
       }}
       onClick={handleCoverClick}
-      onMouseEnter={handleCoverMouseEnter}
-      onMouseLeave={handleCoverMouseLeave}
+      onMouseEnter={() => setCoverHover(true)}
+      onMouseLeave={() => setCoverHover(false)}
     >
-      {/* Edit Cover Button (style should still work on dark bg) */}
+      {/* Edit Cover Button */}
       <IconButton
         className="cover-hover-edit"
         size="small"
         sx={{
-          position: 'absolute', top: 8, right: 8, color: 'white',
+          position: 'absolute',
+          top: 8,
+          right: 8,
+          color: 'white',
           backgroundColor: 'rgba(0, 0, 0, 0.4)',
           opacity: coverHover ? 1 : 0,
           transition: 'opacity 0.2s',
@@ -85,62 +85,67 @@ const ProfileHeader = ({
         onClick={handleCoverEditButtonClick}
         aria-label="Edit cover photo"
       >
-        <EditIcon fontSize="small"/>
+        <EditIcon fontSize="small" />
       </IconButton>
 
-      {/* Avatar */}
+      {/* Avatar with Edit Button */}
       <Box
         sx={{
-          width: { xs: 100, sm: 120, md: 140 }, // Slightly adjusted sizes
+          width: { xs: 100, sm: 120, md: 140 },
           height: { xs: 100, sm: 120, md: 140 },
           position: 'absolute',
-          bottom: { xs: -50, sm: -60, md: -70 }, // Adjust overlap based on size
-          left: { xs: '50%', sm: 24 }, // Indent more on larger screens
+          bottom: { xs: -50, sm: -60, md: -70 },
+          left: { xs: '50%', sm: 24 },
           transform: { xs: 'translateX(-50%)', sm: 'none' },
-          border: '4px solid', // Use theme paper color for border
-          borderColor: 'background.paper', // Ensure good contrast
+          border: '4px solid',
+          borderColor: 'background.paper',
           borderRadius: '50%',
-          bgcolor: 'grey.300', // Fallback bg for avatar itself
-          overflow: 'hidden',
+          bgcolor: 'grey.300',
+          overflow: 'visible', // <<< IMPORTANT: allow icon to go outside
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
           boxShadow: 3,
-          '&:hover .photo-hover-edit': { opacity: 1 },
         }}
         onClick={handlePhotoClick}
-        onMouseEnter={handlePhotoMouseEnter}
-        onMouseLeave={handlePhotoMouseLeave}
       >
         <Avatar
           src={photoLink || ''}
-          alt={professorName || 'User'} // Generic alt
+          alt={professorName || 'User'}
           sx={{
-            width: '100%', height: '100%',
-            fontSize: { xs: '2.5rem', sm: '3rem', md: '3.5rem' }, // Adjust font size
-            // Use theme primary colors for Avatar fallback
+            width: '100%',
+            height: '100%',
+            fontSize: { xs: '2.5rem', sm: '3rem', md: '3.5rem' },
             bgcolor: 'primary.main',
-            color: 'primary.contrastText'
+            color: 'primary.contrastText',
           }}
         >
           {!photoLink && initials}
         </Avatar>
-        {/* Edit Photo Button (style should still work) */}
+
+        {/* Edit Icon on Avatar (properly placed) */}
         <IconButton
-          className="photo-hover-edit"
           size="small"
           sx={{
-            position: 'absolute', bottom: 5, right: 5,
-            color: 'white', backgroundColor: 'rgba(0, 0, 0, 0.4)',
-            opacity: photoHover ? 1 : 0,
-            transition: 'opacity 0.2s',
-            '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.7)' },
+            position: 'absolute',
+            bottom: 0,       // <<< perfectly sits at bottom
+            right: 0,        // <<< perfectly sits at right
+            backgroundColor: 'white',  // white circle background
+            color: 'text.secondary',   // <<< like other edit icons
+            border: '1px solid lightgrey',
+            width: 32,       // fixed size
+            height: 32,
+            transition: 'background-color 0.2s, transform 0.2s',
+            '&:hover': {
+              backgroundColor: 'grey.200',
+              transform: 'scale(1.15)',
+            },
           }}
           onClick={handlePhotoEditButtonClick}
           aria-label="Edit profile photo"
         >
-          <EditIcon fontSize="small"/>
+          <EditIcon fontSize="small" />
         </IconButton>
       </Box>
     </Box>
