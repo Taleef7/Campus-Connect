@@ -13,4 +13,7 @@ export default defineConfig({
       brotliSize: true,
     }),
   ],
+  build: { // Add or modify build options
+    sourcemap: true, // Generate source maps for production build
+  },
 });
